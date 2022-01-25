@@ -414,23 +414,5 @@ namespace ODMissionStacker
 
             SortDataGrid(grid, sortDescriptions);
         }
-
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if(e.Key == Key.K)
-            {
-                MissionsContainer.CurrentManager.OnBounty(new EliteJournalReader.Events.BountyEvent.BountyEventArgs() { VictimFaction = "Qi Yomisii Council" });
-            }
-
-            if(e.Key == Key.R)
-            {
-                foreach (var item in MissionsContainer.CurrentManager.Missions)
-                {
-                    item.Kills = 0;
-                }
-
-                MissionsContainer.CurrentManager.UpdateValues();
-            }
-        }
     }
 }

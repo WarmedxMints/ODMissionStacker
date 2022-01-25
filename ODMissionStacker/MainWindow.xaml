@@ -19,7 +19,6 @@
         StateChanged="MainWindowStateChangeRaised"
         WindowStartupLocation="CenterScreen"
         Icon="/Images/target.png"
-        KeyDown="Window_KeyDown"
         x:Name="Root">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="30" />
