@@ -1,0 +1,119 @@
+﻿<UserControl x:Class="ODMissionStacker.CustomControls.KillCountBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:ODMissionStacker.CustomControls"
+             mc:Ignorable="d"
+             x:Name="Root"
+             Foreground="{DynamicResource Foreground}"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style TargetType="{x:Type RepeatButton}">
+            <Setter Property="Background"
+                    Value="Transparent" />
+            <Setter Property="Foreground"
+                    Value="{DynamicResource Foreground}" />
+            <Setter Property="BorderBrush"
+                    Value="Transparent" />
+            <Setter Property="BorderThickness"
+                    Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Border Name="border"
+                                BorderThickness=".75"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                CornerRadius="1"
+                                Background="{TemplateBinding Background}">
+                            <Grid>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Name="content" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter Property="BorderThickness"
+                                        Value="5" />
+                                <Setter Property="BorderBrush"
+                                        Value="{DynamicResource GridLineColour}" />
+                                <Setter Property="Background"
+                                        Value="{DynamicResource Background}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed"
+                                     Value="True">
+                                <Setter Property="BorderThickness"
+                                        Value="20" />
+                                <Setter Property="BorderBrush"
+                                        Value="{DynamicResource MouseClick}" />
+                                <Setter Property="Background"
+                                        Value="{DynamicResource Background}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled"
+                                     Value="False">
+                                <Setter TargetName="border"
+                                        Property="Opacity"
+                                        Value="0.7" />
+                                <Setter TargetName="border"
+                                        Property="BorderBrush"
+                                        Value="{DynamicResource MouseClick}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource Background}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Grid VerticalAlignment="Center">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="60" />
+            <ColumnDefinition Width="20" />
+        </Grid.ColumnDefinitions>
+
+        <RepeatButton Width="16"
+                      Height="16"
+                      x:Name="DownButton"
+                      Click="DownButton_Click"
+                      FontFamily="Segoe MDL2 Assets"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      Content="&#xE738;"
+                      Grid.Column="0"
+                      PreviewMouseLeftButtonUp="Button_PreviewMouseLeftButtonUp" />
+
+        <TextBlock VerticalAlignment="Center"
+                   HorizontalAlignment="Stretch"
+                   TextAlignment="Right"
+                   Margin="5,0"
+                   Grid.Column="1">
+            <TextBlock.Text>
+                <MultiBinding StringFormat="{}{0} / {1}">
+                    <Binding ElementName="Root"
+                             Path="Value"
+                             Mode="TwoWay" />
+                    <Binding ElementName="Root"
+                             Path="Maximum" />
+                </MultiBinding>
+            </TextBlock.Text>
+        </TextBlock>
+
+        <RepeatButton Width="16"
+                      Height="16"
+                      x:Name="UpButton"
+                      Click="UpButton_Click"
+                      FontFamily="Segoe MDL2 Assets"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      HorizontalContentAlignment="Center"
+                      FontSize="12"
+                      Content="&#xE710;"
+                      Grid.Column="2"
+                      PreviewMouseLeftButtonUp="Button_PreviewMouseLeftButtonUp" />
+    </Grid>
+</UserControl>

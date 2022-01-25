@@ -1,0 +1,19 @@
+﻿<Application x:Class="ODMissionStacker.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ODMissionStacker"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/DefaultColours.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/ComboBoxStyle.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/TitleBarStyle.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/DataGridStyle.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/ButtonStyle.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/MenuStyles.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/ScrollBarStyle.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

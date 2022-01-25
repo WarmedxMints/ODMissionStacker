@@ -1,0 +1,22 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="Background"
+                     Color="#FF171717" />
+    <SolidColorBrush x:Key="Foreground"
+                     Color="#FFCB8300" />
+    <SolidColorBrush x:Key="Redirected"
+                     Color="#FFF0E6D5" />
+    <SolidColorBrush x:Key="Completed"
+                     Color="#FF1CEA12" />
+    <SolidColorBrush x:Key="Abandonded"
+                     Color="#FFE02A0E" />
+    <SolidColorBrush x:Key="GridLineColour"
+                     Color="#FFE0AD00" />
+    <SolidColorBrush x:Key="MouseClick"
+                     Color="Gray" />
+    <SolidColorBrush x:Key="Highlighted"
+                     Color="#FFF7D020" />
+    <SolidColorBrush x:Key="MouseOver"
+                     Color="#7F707070" />
+</ResourceDictionary>

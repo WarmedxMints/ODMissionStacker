@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>target.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\target.png" />
+    <None Remove="Images\Wing.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="E:\GitHub\EliteJournalReader\EliteJournalReader\EliteJournalReader.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\target.png" />
+    <Resource Include="Images\Wing.png" />
+  </ItemGroup>
+
+</Project>

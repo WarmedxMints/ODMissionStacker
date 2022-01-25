@@ -1,0 +1,697 @@
+﻿<Window x:Class="ODMissionStacker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:custom="clr-namespace:ODMissionStacker.CustomControls"
+        xmlns:settings="clr-namespace:ODMissionStacker.Settings"
+        xmlns:System="clr-namespace:System;assembly=mscorlib"
+        mc:Ignorable="d"
+        FontSize="16"
+        Title="OD MASSACRE STACK MANAGER v1.0"
+        Loaded="Window_Loaded"
+        Closed="Window_Closed"
+        Background="{DynamicResource Background}"
+        Foreground="{DynamicResource Foreground}"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
+        Height="850"
+        Width="1320"
+        StateChanged="MainWindowStateChangeRaised"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Images/target.png"
+        KeyDown="Window_KeyDown"
+        x:Name="Root">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="30" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <ObjectDataProvider x:Key="DisplayModeEnum"
+                            MethodName="GetValues"
+                            ObjectType="{x:Type System:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="settings:DisplayMode"></x:Type>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <ObjectDataProvider x:Key="GridSortingEnum"
+                            MethodName="GetValues"
+                            ObjectType="{x:Type System:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="settings:GridSorting"></x:Type>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+    </Window.Resources>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static SystemCommands.CloseWindowCommand}"
+                        CanExecute="CommandBinding_CanExecute"
+                        Executed="CommandBinding_Executed_Close" />
+        <CommandBinding Command="{x:Static SystemCommands.MaximizeWindowCommand}"
+                        CanExecute="CommandBinding_CanExecute"
+                        Executed="CommandBinding_Executed_Maximize" />
+        <CommandBinding Command="{x:Static SystemCommands.MinimizeWindowCommand}"
+                        CanExecute="CommandBinding_CanExecute"
+                        Executed="CommandBinding_Executed_Minimize" />
+        <CommandBinding Command="{x:Static SystemCommands.RestoreWindowCommand}"
+                        CanExecute="CommandBinding_CanExecute"
+                        Executed="CommandBinding_Executed_Restore" />
+    </Window.CommandBindings>
+
+    <Border x:Name="MainWindowBorder"
+            BorderThickness="0">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30" />
+                <RowDefinition Height="20" />
+                <RowDefinition Height="40" />
+                <RowDefinition Height="470" />
+                <RowDefinition Height="20" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="20" />
+            </Grid.RowDefinitions>
+
+            <!--#region Custom Title Bar-->
+            <Grid Height="30"
+                  Grid.ColumnSpan="3"
+                  Background="#FF272626">
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Margin="5,0,0,0">
+                    <!--App icon-->
+                    <Image Width="18"
+                           Margin="2"
+                           Source="/ODMissionStacker;component/Images/target.png"
+                           VerticalAlignment="Bottom" />
+                    <TextBlock Text="{Binding ElementName=Root, Path=Title}"
+                               VerticalAlignment="Top"
+                               FontSize="16"
+                               Margin="5,0"
+                               Foreground="{DynamicResource Foreground}" />
+                </StackPanel>
+
+                <!--Caption buttons-->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button Style="{StaticResource MinimizeButtonStyle}"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            ToolTip="Minimize"
+                            Command="{x:Static SystemCommands.MinimizeWindowCommand}" />
+                    <Button x:Name="RestoreButton"
+                            Visibility="Collapsed"
+                            Style="{StaticResource RestoreButtonStyle}"
+                            Command="{x:Static SystemCommands.RestoreWindowCommand}"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            ToolTip="Restore" />
+                    <Button x:Name="MaximizeButton"
+                            Visibility="Visible"
+                            Style="{StaticResource MaximizeButtonStyle}"
+                            Command="{x:Static SystemCommands.MaximizeWindowCommand}"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            ToolTip="Maximize" />
+                    <Button Style="{StaticResource CloseButtonStyle}"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            ToolTip="Close"
+                            Command="{x:Static SystemCommands.CloseWindowCommand}" />
+                </StackPanel>
+            </Grid>
+            <!--#endregion-->
+
+            <!--#region ComboBoxes-->
+            <Grid Grid.Row="2"
+                  Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <TextBlock Text="Missions : "
+                               VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding Source={StaticResource DisplayModeEnum}}"
+                              SelectedItem="{Binding Settings.ViewDisplayMode}"
+                              x:Name="DisplayModeSelecter"
+                              Width="110"
+                              VerticalAlignment="Center"
+                              SelectionChanged="DisplayModeSelecter_SelectionChanged" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            Grid.Column="2"
+                            VerticalAlignment="Top">
+                    <TextBlock Text="Sort by : "
+                               VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding Source={StaticResource GridSortingEnum}}"
+                              SelectedItem="{Binding Settings.MainGridSorting}"
+                              x:Name="SortingModeSelector"
+                              Width="110"
+                              VerticalAlignment="Center"
+                              SelectionChanged="SortingModeSelector_SelectionChanged" />
+                </StackPanel>
+            </Grid>
+            <!--#endregion-->
+
+            <Grid Grid.Column="1"
+                  Grid.Row="3"
+                  Grid.ColumnSpan="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="0"
+                                      x:Name="ClipboardColumn"/>
+                    <ColumnDefinition Width="20"/>
+                </Grid.ColumnDefinitions>
+                
+                <!--#region Mission Data-->
+                <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.Missions}"
+                          x:Name="MissionDataGrid"
+                          IsHitTestVisible="True"
+                          HorizontalAlignment="Left"
+                          Loaded="MissionDataGrid_Loaded"
+                          CellStyle="{DynamicResource MissionsGridCell}">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="{x:Type DataGridRow}">
+                            <Setter Property="BorderThickness"
+                                    Value="0" />
+                            <Setter Property="IsHitTestVisible"
+                                    Value="True" />
+                            <Setter Property="Background"
+                                    Value="{DynamicResource Background}" />
+                            <Setter Property="BorderBrush"
+                                    Value="{x:Null}" />
+                            <Setter Property="FocusVisualStyle"
+                                    Value="{x:Null}" />
+                            <Setter Property="ContextMenu"
+                                    Value="{Binding ContextMenu}" />
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource Foreground}" />
+                            <EventSetter Event="MouseEnter"
+                                         Handler="MissionsDateGridRow_MouseEnter" />
+                            <EventSetter Event="MouseLeave"
+                                         Handler="MissionsDateGridRow_MouseLeave" />
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver"
+                                         Value="True">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource MouseOver}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected"
+                                         Value="True">
+                                    <Setter Property="Background"
+                                            Value="{x:Null}" />
+                                    <Setter Property="BorderBrush"
+                                            Value="{x:Null}" />
+                                    <Setter Property="BorderThickness"
+                                            Value="0" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn MinWidth="70"
+                                                Width="SizeToCells"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                Header="SYSTEM">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Width="18"
+                                                Height="18"
+                                                BorderThickness="0"
+                                                x:Name="CopyToClipboard"
+                                                Click="CopyToClipboard_Click"
+                                                FontSize="16"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                Content="&#xF0E3;" />
+                                        <TextBlock Text="{Binding SourceSystem}"
+                                                   Margin="5,0,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="STATION"
+                                            MinWidth="70"
+                                            Width="SizeToCells"
+                                            Binding="{Binding SourceStation}" />
+                        <DataGridTextColumn Header="ISSUING FACTION"
+                                            MinWidth="70"
+                                            x:Name="FACION"
+                                            Width="*"
+                                            HeaderStyle="{DynamicResource HeaderLeft}"
+                                            Binding="{Binding IssuingFaction}" />
+                        <DataGridTextColumn Header="TARGET FACTION"
+                                            MinWidth="130"
+                                            Width="SizeToCells"
+                                            HeaderStyle="{DynamicResource HeaderLeft}"
+                                            Binding="{Binding TargetFaction}" />
+                        <DataGridTemplateColumn Header="KILLS"
+                                                MinWidth="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <custom:KillCountBox Minimum="0"
+                                                         Maximum="{Binding KillCount}"
+                                                         ButtonStep="1"
+                                                         VerticalAlignment="Center"
+                                                         HorizontalAlignment="Center"
+                                                         Click="KillCountBox_Click"
+                                                         Value="{Binding Path=Kills, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="REWARD"
+                                            MinWidth="100"
+                                            Width="SizeToCells"
+                                            Binding="{Binding Reward, StringFormat={}{0:N0} cr}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="EXPIRES"
+                                            MinWidth="135"
+                                            Width="SizeToCells"
+                                            Binding="{Binding ExpireTime, StringFormat={}{0:ddd\, MMM d\, hh:mm}}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="WING"
+                                                Width="SizeToCells"
+                                                MinWidth="45">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Image Source="/ODMissionStacker;component/Images/Wing.png"
+                                           Width="18"
+                                           Height="18"
+                                           Visibility="{Binding Wing, Converter={StaticResource BoolToVis}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <!--#endregion-->
+
+                <Button x:Name="ClipboardExpander"
+                        Grid.Column="2"
+                        FontSize="16"
+                        Margin="0,41,0,20"
+                        FontFamily="Segoe MDL2 Assets"
+                        Content="&#xE973;"
+                        Click="ClipboardExpander_Click"/>
+                
+                <Grid Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="10" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="MISSION SOURCE CLIPBOARD" 
+                               Grid.Column="1"/>
+
+                    <Button Content="ADD SOURCE"
+                            Grid.Column="3" 
+                            Click="AddClipboardSource_Click"/>
+
+                    <DataGrid ItemsSource="{Binding MissionsContainer.MissionSourceClipboards}"
+                              Grid.Column="1"
+                              Grid.ColumnSpan="3"
+                              Loaded="ClipBoardDataGrid_Loaded"
+                              Grid.Row="2">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="{x:Type DataGridRow}">
+                                <Setter Property="BorderThickness"
+                                        Value="0" />
+                                <Setter Property="IsHitTestVisible"
+                                        Value="True" />
+                                <Setter Property="Background"
+                                        Value="{DynamicResource Background}" />
+                                <Setter Property="BorderBrush"
+                                        Value="{x:Null}" />
+                                <Setter Property="FocusVisualStyle"
+                                        Value="{x:Null}" />
+                                <Setter Property="ContextMenu"
+                                        Value="{Binding ContextMenu}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource Foreground}" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver"
+                                             Value="True">
+                                        <Setter Property="Background"
+                                                Value="{DynamicResource MouseOver}" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected"
+                                             Value="True">
+                                        <Setter Property="Background"
+                                                Value="{x:Null}" />
+                                        <Setter Property="BorderBrush"
+                                                Value="{x:Null}" />
+                                        <Setter Property="BorderThickness"
+                                                Value="0" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="TARGET SYSTEM"
+                                                MinWidth="125"
+                                                Width="SizeToCells"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                Binding="{Binding DestinationName}" />
+                            <DataGridTextColumn Header="SOURCE SYSTEM"
+                                                MinWidth="125"
+                                                Width="SizeToCells"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                Binding="{Binding SystemName}" />
+                            <DataGridTextColumn Header="SOURCE STATION"
+                                                MinWidth="125"
+                                                Width="SizeToCells"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                Binding="{Binding StationName}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Grid>
+            <Grid Grid.Column="1"
+                  Grid.Row="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <!--#region Target Factions info-->
+                <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.TargetFactionInfo}"
+                          x:Name="TargetFactionGrid"
+                          Loaded="TargetFactionGrid_Loaded"
+                          HorizontalAlignment="Left"
+                          IsHitTestVisible="False"
+                          Grid.Column="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TARGET FACTION"
+                                            HeaderStyle="{DynamicResource HeaderLeft}"
+                                            Width="SizeToCells"
+                                            MinWidth="130"
+                                            Binding="{Binding TargetFaction}">
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="INFO"
+                                                Width="SizeToCells"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                MinWidth="200">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="Mission Count"
+                                                   Grid.Column="0"
+                                                   Grid.Row="0" />
+                                        <TextBlock Text="{Binding MissionCount}"
+                                                   Grid.Column="1"
+                                                   Margin="0,0,5,0"
+                                                   Grid.Row="0"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Active MIssions"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="1" />
+                                        <TextBlock Text="{Binding ActiveMissionsCount}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="1"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Kill Count"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="2" />
+                                        <TextBlock Text="{Binding KillCount}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="2"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Kills Remianing"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="3" />
+                                        <TextBlock Text="{Binding RemainingCount}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="3"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Kills To Next&#x0a;Mission Completion"
+                                                   Margin="0,5,10,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="4" />
+
+                                        <TextBlock Text="{Binding KillsToNextMissonCompletion}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="4"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Total Kills"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="5" />
+                                        <TextBlock Text="{Binding TotalKills}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="5"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Kill Ratio"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="6" />
+                                        <TextBlock Text="{Binding KillRatio, StringFormat={}{0:N2}}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="6"
+                                                   TextAlignment="Right" />
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="VALUE"
+                                                Width="SizeToCells"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                MinWidth="240">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="Avg Per Kill"
+                                                   Margin="0,0,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="0" />
+                                        <TextBlock Text="{Binding AveragePerKill, StringFormat={}{0:N0} cr}"
+                                                   Margin="0,0,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="0"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Avg Per Mission"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="1" />
+                                        <TextBlock Text="{Binding AveragePerMission, StringFormat={}{0:N0} cr}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="1"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Stack Value"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="2" />
+                                        <TextBlock Text="{Binding Reward, StringFormat={}{0:N0} cr}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="2"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Shareable Value"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="3" />
+                                        <TextBlock Text="{Binding ShareableValue, StringFormat={}{0:N0} cr}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="3"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Current Turn In&#x0a;Value"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="4" />
+                                        <TextBlock Text="{Binding TurnInValue, StringFormat={}{0:N0} cr}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   Grid.Row="4"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Shareable Turn&#x0a;In Value"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="5" />
+                                        <TextBlock Text="{Binding ShareableTurnInValue, StringFormat={}{0:N0} cr}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   Grid.Row="5"
+                                                   TextAlignment="Right" />
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <!--#endregion-->
+
+                <!--#region Stack Info-->
+                <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.StackInformation}"
+                          Grid.Column="2"
+                          x:Name="StackInfoGrid"
+                          Loaded="StackInfoGrid_Loaded">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="{x:Type DataGridRow}">
+                            <Setter Property="BorderThickness"
+                                    Value="0" />
+                            <Setter Property="IsHitTestVisible"
+                                    Value="True" />
+                            <Setter Property="Background"
+                                    Value="{DynamicResource Background}" />
+                            <Setter Property="BorderBrush"
+                                    Value="{x:Null}" />
+                            <Setter Property="FocusVisualStyle"
+                                    Value="{x:Null}" />
+                            <EventSetter Event="MouseEnter"
+                                         Handler="StackInfoGrid_MouseOver" />
+                            <EventSetter Event="MouseLeave"
+                                         Handler="StackInfoGrid_MouseLeave" />
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver"
+                                         Value="True">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource MouseOver}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected"
+                                         Value="True">
+                                    <Setter Property="Background"
+                                            Value="{x:Null}" />
+                                    <Setter Property="BorderBrush"
+                                            Value="{x:Null}" />
+                                    <Setter Property="BorderThickness"
+                                            Value="0" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ISSUING FACTION"
+                                            MinWidth="130"
+                                            Width="*"
+                                            HeaderStyle="{DynamicResource HeaderLeft}"
+                                            Binding="{Binding IssuingFaction}" />
+                        <DataGridTextColumn Header="TARGET FACTION"
+                                            MinWidth="130"
+                                            Width="SizeToCells"
+                                            HeaderStyle="{DynamicResource HeaderLeft}"
+                                            Binding="{Binding TargetFaction}" />
+                        <DataGridTextColumn Header="KILLS"
+                                            MinWidth="45"
+                                            Width="SizeToCells"
+                                            Binding="{Binding KillCount, StringFormat={}{0:N0}}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="DIFF"
+                                            MinWidth="45"
+                                            Width="SizeToCells"
+                                            Binding="{Binding Difference}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="COUNT"
+                                            MinWidth="55"
+                                            Width="SizeToCells"
+                                            Binding="{Binding MissionCount}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="REWARD"
+                                            MinWidth="70"
+                                            Width="SizeToCells"
+                                            Binding="{Binding Reward, StringFormat={}{0:N0} cr}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <!--#endregion-->
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
