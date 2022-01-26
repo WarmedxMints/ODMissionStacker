@@ -8,7 +8,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         FontSize="16"
-        Title="OD MASSACRE STACK MANAGER v1.0"
+        Title="OD MASSACRE STACK MANAGER v1.1"
         Loaded="Window_Loaded"
         Closed="Window_Closed"
         Background="{DynamicResource Background}"
@@ -133,9 +133,13 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="20" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal"
+                            Height="30"
                             VerticalAlignment="Top">
                     <TextBlock Text="Missions : "
                                VerticalAlignment="Center" />
@@ -143,12 +147,12 @@
                               SelectedItem="{Binding Settings.ViewDisplayMode}"
                               x:Name="DisplayModeSelecter"
                               Width="110"
-                              VerticalAlignment="Center"
                               SelectionChanged="DisplayModeSelecter_SelectionChanged" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal"
                             Grid.Column="2"
+                            Height="30"
                             VerticalAlignment="Top">
                     <TextBlock Text="Sort by : "
                                VerticalAlignment="Center" />
@@ -156,8 +160,50 @@
                               SelectedItem="{Binding Settings.MainGridSorting}"
                               x:Name="SortingModeSelector"
                               Width="110"
-                              VerticalAlignment="Center"
-                              SelectionChanged="SortingModeSelector_SelectionChanged" />
+                              HorizontalAlignment="Left"
+                              SelectionChanged="SortingModeSelector_SelectionChanged" />          
+                </StackPanel>
+
+
+                <StackPanel Orientation="Horizontal"
+                            Grid.Column="3"
+                            VerticalAlignment="Top"
+                            Height="30"
+                            Margin="10,0">
+                    <StackPanel.Style>
+                        <Style TargetType="{x:Type StackPanel}">
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Settings.ViewDisplayMode}"
+                                             Value="{x:Static settings:DisplayMode.Completed}">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Button x:Name="PurgeCompleted"
+                            Content=" Purge Completed "
+                            Click="PurgeCompleted_Click" />
+                    <Button x:Name="PurgeAbandonded"
+                            Content=" Purge Abandonded "
+                            Click="PurgeAbandonded_Click"
+                            Margin="10,0" />
+                    <Button x:Name="ReadHistory"
+                            Content=" Read History "
+                            Click="ReadHistory_Click" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal"
+                            Grid.Column="5"
+                            Height="30"
+                            HorizontalAlignment="Right">
+                    <TextBlock Text="CMDR : "
+                               VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding Settings.Commanders}"
+                          SelectedItem="{Binding Settings.CurrentCommander}"
+                          VerticalAlignment="Center"
+                              MinWidth="150"/>
                 </StackPanel>
             </Grid>
             <!--#endregion-->
@@ -282,7 +328,7 @@
                         <DataGridTextColumn Header="EXPIRES"
                                             MinWidth="135"
                                             Width="SizeToCells"
-                                            Binding="{Binding ExpireTime, StringFormat={}{0:ddd\, MMM d\, hh:mm}}">
+                                            Binding="{Binding ExpireTime, StringFormat={}{0:ddd\, MMM d yyyy\, hh:mm}}">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="HorizontalAlignment"
@@ -405,8 +451,8 @@
                 <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.TargetFactionInfo}"
                           x:Name="TargetFactionGrid"
                           Loaded="TargetFactionGrid_Loaded"
+                          VirtualizingPanel.ScrollUnit="Pixel"
                           HorizontalAlignment="Left"
-                          IsHitTestVisible="False"
                           Grid.Column="0">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="TARGET FACTION"
@@ -465,7 +511,7 @@
                                                    Grid.Row="2"
                                                    TextAlignment="Right" />
 
-                                        <TextBlock Text="Kills Remianing"
+                                        <TextBlock Text="Kills Remaining"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="0"
                                                    Grid.Row="3" />

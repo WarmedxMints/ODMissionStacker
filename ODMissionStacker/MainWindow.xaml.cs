@@ -1,4 +1,5 @@
-﻿using ODMissionStacker.Missions;
+﻿using ODMissionStacker.CustomMessageBox;
+using ODMissionStacker.Missions;
 using ODMissionStacker.Settings;
 using ODMissionStacker.Utils;
 using System;
@@ -7,7 +8,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -88,9 +88,8 @@ namespace ODMissionStacker
 
         public MainWindow()
         {
-            missionsContainer = new(Settings);
 
-            MissionsContainer.Init();
+            missionsContainer = new(Settings);
 
             InitializeComponent();
         }
@@ -98,6 +97,7 @@ namespace ODMissionStacker
         {
             Settings.LoadSettings();
             ShowClipboard(Settings.ShowClipBoard);
+            MissionsContainer.Init();
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -289,7 +289,7 @@ namespace ODMissionStacker
 
         private void MissionsDateGridRow_MouseEnter(object sender, MouseEventArgs e)
         {
-            if (StackInfoGrid == null)
+            if (StackInfoGrid == null || Settings.ViewDisplayMode == DisplayMode.Completed)
             {
                 return;
             }
@@ -315,7 +315,7 @@ namespace ODMissionStacker
 
         private void MissionsDateGridRow_MouseLeave(object sender, MouseEventArgs e)
         {
-            if (StackInfoGrid == null)
+            if (StackInfoGrid == null || Settings.ViewDisplayMode == DisplayMode.Completed)
             {
                 return;
             }
@@ -333,7 +333,7 @@ namespace ODMissionStacker
 
         private void StackInfoGrid_MouseOver(object sender, MouseEventArgs e)
         {
-            if (MissionDataGrid == null)
+            if (MissionDataGrid == null || Settings.ViewDisplayMode == DisplayMode.Completed)
             {
                 return;
             }
@@ -350,7 +350,7 @@ namespace ODMissionStacker
 
         private void StackInfoGrid_MouseLeave(object sender, MouseEventArgs e)
         {
-            if (MissionDataGrid == null)
+            if (MissionDataGrid == null || Settings.ViewDisplayMode == DisplayMode.Completed)
             {
                 return;
             }
@@ -385,7 +385,7 @@ namespace ODMissionStacker
                 Owner = this
             };
 
-            clipboardSourceView.ShowDialog();
+            _ = clipboardSourceView.ShowDialog();
 
             if((bool)clipboardSourceView.DialogResult)
             {
@@ -413,6 +413,37 @@ namespace ODMissionStacker
             sortDescriptions.Add(new SortDescription("StationName", ListSortDirection.Ascending));
 
             SortDataGrid(grid, sortDescriptions);
+        }
+
+        private void PurgeCompleted_Click(object sender, RoutedEventArgs e)
+        {
+            var del = ODMessageBox.Show(this, "Purge All Completed Missions?", MessageBoxButton.YesNo);
+
+            if(del == MessageBoxResult.Yes)
+            {
+                MissionsContainer.PurgeMissions(MissionState.Complete);
+            }
+        }
+
+        private void PurgeAbandonded_Click(object sender, RoutedEventArgs e)
+        {
+            var del = ODMessageBox.Show(this, "Purge All Abandonded Missions?", MessageBoxButton.YesNo);
+
+            if (del == MessageBoxResult.Yes)
+            {
+                MissionsContainer.PurgeMissions(MissionState.Abandonded);
+            }
+        }
+
+        private void ReadHistory_Click(object sender, RoutedEventArgs e)
+        {
+            var ret = new MissionHistoryReaderView(MissionsContainer);
+            ret.Owner = this;
+
+            if((bool)ret.ShowDialog())
+            {
+                MissionsContainer.SaveData();
+            }
         }
     }
 }

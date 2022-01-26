@@ -7,8 +7,8 @@ namespace ODMissionStacker.Missions
     public class TargetFactionInfo : PropertyChangeNotify
     {
         private string targetFaction;
-        private int reward;
-        private int shareableValue;
+        private long reward;
+        private long shareableValue;
         private int killCount;
         private int remainingCount;
         private int killsToNextMissonCompletion;
@@ -22,8 +22,8 @@ namespace ODMissionStacker.Missions
         private long shareableTurnInValue;
 
         public string TargetFaction { get => targetFaction; set { targetFaction = value; OnPropertyChanged(); } }
-        public int Reward { get => reward; set { reward = value; OnPropertyChanged(); } }
-        public int ShareableValue { get => shareableValue; set { shareableValue = value; OnPropertyChanged(); } }
+        public long Reward { get => reward; set { reward = value; OnPropertyChanged(); } }
+        public long ShareableValue { get => shareableValue; set { shareableValue = value; OnPropertyChanged(); } }
         public int KillCount { get => killCount; set { killCount = value; OnPropertyChanged(); } }
         public int RemainingCount { get => remainingCount; set { remainingCount = value; OnPropertyChanged(); } }
         public int KillsToNextMissonCompletion { get => killsToNextMissonCompletion; set { killsToNextMissonCompletion = value; OnPropertyChanged(); } }

@@ -34,7 +34,7 @@
         <Setter Property="VerticalScrollBarVisibility"
                 Value="Auto" />
         <Setter Property="EnableRowVirtualization"
-                Value="False" />
+                Value="True" />
         <Setter Property="FocusVisualStyle"
                 Value="{x:Null}" />
         <Setter Property="Background"
@@ -71,7 +71,11 @@
             <Trigger Property="IsMouseOver"
                      Value="True">
                 <Setter Property="Background"
-                        Value="{DynamicResource MouseOver}" />
+                        Value="{x:Null}" />
+                <Setter Property="BorderBrush"
+                        Value="{x:Null}" />
+                <Setter Property="BorderThickness"
+                        Value="0" />
             </Trigger>
             <Trigger Property="IsSelected"
                      Value="True">
