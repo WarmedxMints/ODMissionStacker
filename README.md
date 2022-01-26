@@ -3,6 +3,8 @@ Massacre Mission Stack Manager for Elite Dangerous
 
 [Click here for the latest release](https://github.com/WarmedxMints/ODMissionStacker/releases)
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/rnPuwkjvMPY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 OD Massacre Stack Manager is not affiliated with [Frontier Developments](https://www.frontier.co.uk/), the developers of [Elite Dangerous](https://www.elitedangerous.com/).
 
 
