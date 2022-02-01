@@ -1,10 +1,20 @@
 # Massacre Stack Manager
+
 Massacre Mission Stack Manager for Elite Dangerous
 
 [Click here for the latest release](https://github.com/WarmedxMints/ODMissionStacker/releases)
 
-[![OD Massace Mission Stacker Overview](https://img.youtube.com/vi/rnPuwkjvMPY/0.jpg)](https://www.youtube.com/watch?v=rnPuwkjvMPY)
-
+<p align="center">
+  <a href="http://www.youtube.com/watch?feature=player_embedded&v=rnPuwkjvMPY
+" target="_blank"><img src="http://img.youtube.com/vi/rnPuwkjvMPY/0.jpg" 
+alt="OD Massace Mission Stacker Overview" width="480" height="360" border="10" /></a>
+</p>
+  
+<p align="center">
+  <a href="http://www.youtube.com/watch?feature=player_embedded&v=5Qs68j_TqUU
+" target="_blank"><img src="http://img.youtube.com/vi/5Qs68j_TqUU/0.jpg" 
+alt="OD Massace Mission Stacker v1.1 Overview" width="480" height="360" border="10" /></a>
+</p>
 
 OD Massacre Stack Manager is not affiliated with [Frontier Developments](https://www.frontier.co.uk/), the developers of [Elite Dangerous](https://www.elitedangerous.com/).
 
