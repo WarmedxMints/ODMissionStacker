@@ -13,6 +13,7 @@
                 <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/ButtonStyle.xaml" />
                 <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/MenuStyles.xaml" />
                 <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/ScrollBarStyle.xaml" />
+                <ResourceDictionary Source="/ODMissionStacker;component/ResourceDictionarys/RepeatButtonStyle.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

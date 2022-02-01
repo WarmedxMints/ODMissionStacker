@@ -9,67 +9,8 @@
              Foreground="{DynamicResource Foreground}"
              d:DesignHeight="450"
              d:DesignWidth="800">
-    <UserControl.Resources>
-        <Style TargetType="{x:Type RepeatButton}">
-            <Setter Property="Background"
-                    Value="Transparent" />
-            <Setter Property="Foreground"
-                    Value="{DynamicResource Foreground}" />
-            <Setter Property="BorderBrush"
-                    Value="Transparent" />
-            <Setter Property="BorderThickness"
-                    Value="0" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type RepeatButton}">
-                        <Border Name="border"
-                                BorderThickness=".75"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                CornerRadius="1"
-                                Background="{TemplateBinding Background}">
-                            <Grid>
-                                <ContentPresenter HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  Name="content" />
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver"
-                                     Value="True">
-                                <Setter Property="BorderThickness"
-                                        Value="5" />
-                                <Setter Property="BorderBrush"
-                                        Value="{DynamicResource GridLineColour}" />
-                                <Setter Property="Background"
-                                        Value="{DynamicResource Background}" />
-                            </Trigger>
-                            <Trigger Property="IsPressed"
-                                     Value="True">
-                                <Setter Property="BorderThickness"
-                                        Value="20" />
-                                <Setter Property="BorderBrush"
-                                        Value="{DynamicResource MouseClick}" />
-                                <Setter Property="Background"
-                                        Value="{DynamicResource Background}" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled"
-                                     Value="False">
-                                <Setter TargetName="border"
-                                        Property="Opacity"
-                                        Value="0.7" />
-                                <Setter TargetName="border"
-                                        Property="BorderBrush"
-                                        Value="{DynamicResource MouseClick}" />
-                                <Setter Property="Foreground"
-                                        Value="{DynamicResource Background}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
-    <Grid VerticalAlignment="Center">
+    <Grid VerticalAlignment="Center"
+          HorizontalAlignment="Center">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20" />
             <ColumnDefinition Width="60" />
@@ -84,6 +25,7 @@
                       VerticalAlignment="Center"
                       HorizontalAlignment="Center"
                       Content="&#xE738;"
+                      FontSize="12"
                       Grid.Column="0"
                       PreviewMouseLeftButtonUp="Button_PreviewMouseLeftButtonUp" />
 

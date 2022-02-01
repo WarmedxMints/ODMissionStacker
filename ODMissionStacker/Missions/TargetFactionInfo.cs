@@ -1,4 +1,5 @@
 ﻿using ODMissionStacker.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -45,6 +46,7 @@ namespace ODMissionStacker.Missions
 
             Dictionary<string, int[]> remainingKills = new();
             List<int> missionRemainingKills = new();
+            List<string> factions = new();
             remainingCount = KillCount;
 
             int activeMisCount = 0;
@@ -54,9 +56,14 @@ namespace ODMissionStacker.Missions
 
             foreach (MissionData data in missions)
             {
-                if (string.Equals(data.TargetFaction, TargetFaction, System.StringComparison.OrdinalIgnoreCase) == false || data.CurrentState == MissionState.Abandonded)
+                if (string.Equals(data.TargetFaction, TargetFaction, StringComparison.OrdinalIgnoreCase) == false || data.CurrentState == MissionState.Abandonded)
                 {
                     continue;
+                }
+
+                if (factions.Contains(data.IssuingFaction) == false)
+                {
+                    factions.Add(data.IssuingFaction);
                 }
 
                 if (remainingKills.ContainsKey(data.IssuingFaction) == false)
@@ -96,7 +103,22 @@ namespace ODMissionStacker.Missions
             RemainingCount = remainingKills.Max(x => x.Value[1] - x.Value[0]);
             TotalKills = totalKills;
             KillRatio = totalKills / (double)KillCount;
-            KillsToNextMissonCompletion = missionRemainingKills.Count > 0 ? missionRemainingKills.Min() : 0;
+
+            List<int> killsRemaining = new();
+
+            foreach (string faction in factions)
+            {
+                MissionData mission = missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction, StringComparison.OrdinalIgnoreCase) &&
+                                                                x.CurrentState == MissionState.Active);
+
+                if (mission == default)
+                {
+                    continue;
+                }
+                killsRemaining.Add(mission.KillCount - mission.Kills);
+            }
+
+            KillsToNextMissonCompletion = killsRemaining.Count > 0 ? killsRemaining.Min() : 0;
             AveragePerKill = Reward / KillCount;
             AveragePerMission = Reward / MissionCount;
             TurnInValue = turnInValue;

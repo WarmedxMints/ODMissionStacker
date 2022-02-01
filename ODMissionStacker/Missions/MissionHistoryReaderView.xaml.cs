@@ -28,7 +28,7 @@ namespace ODMissionStacker.Missions
         {
             this.container = container;
             InitializeComponent();
-            if(autoRun)
+            if (autoRun)
             {
                 ReadHistoryBtn_Click(null, null);
             }
@@ -36,6 +36,11 @@ namespace ODMissionStacker.Missions
 
         private async void ReadHistoryBtn_Click(object sender, RoutedEventArgs e)
         {
+            if (readingHistory)
+            {
+                return;
+            }
+
             readingHistory = true;
             Header.Text = "Reading History, Please Wait....";
             ReadHistoryBtn.Content = "Reading History...";
@@ -43,14 +48,24 @@ namespace ODMissionStacker.Missions
             ReadHistoryBtn.Visibility = Visibility.Hidden;
             ProgressPanel.Visibility = Visibility.Visible;
             AutoClose.Visibility = Visibility.Visible;
+            TitleText.Text = "Processing Journal File : ";
+
             Progress<string> progress = new();
             progress.ProgressChanged += (_, newText) => ProgressText.Text = newText;
-            TitleText.Text = "Processing Journal File : ";
+
             MissionHistoryBuilder builder = new(container.JournalWatcher, container.CommanderFID);
 
-            Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>> ret = await Task.Run(() => builder.GetHistory(progress));
-            TitleText.Text = "Processing Mission ID : ";
-            await Task.Run(() => container.ProcessHistory(ret.Item1, ret.Item2, progress));
+            try
+            {
+                Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>, List<BountyData>> ret = await Task.Run(() => builder.GetHistory(progress, container));
+                TitleText.Text = "Processing Journal File : ";
+                TitleText.Text = "Processing Mission ID : ";
+                await Task.Run(() => container.ProcessHistory(ret.Item1, ret.Item2, ret.Item3, progress));
+            }
+            catch (OperationCanceledException)
+            {
+                // Handle the cancelled Task
+            }
 
             DialogResult = true;
         }

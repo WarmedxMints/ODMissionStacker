@@ -13,9 +13,10 @@ namespace ODMissionStacker.Missions
 
         private bool odyssey;
         private Dictionary<long, MissionData> horizonMissionsData = new(), odysseyMissionsData = new();
-        private bool handleLogs;
+        private bool handleLogs = true;
         private Station currentStation;
         private List<StackInfo> stackInformation = new();
+        private List<BountyData> bountiesData = new();
 
         public MissionHistoryBuilder(JournalWatcher watcher, string fid)
         {
@@ -31,7 +32,7 @@ namespace ODMissionStacker.Missions
 
         private void OnCommanderEvent(object sender, CommanderEvent.CommanderEventArgs e)
         {
-            handleLogs = e.FID == commanderFid;
+            handleLogs = e.FID.Equals(commanderFid);
         }
 
         private void OnLocationEvent(object sender, LocationEvent.LocationEventArgs e)
@@ -86,10 +87,11 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (currentStation == null || e.KillCount is null || e.KillCount == 0 || string.IsNullOrEmpty(e.TargetFaction))
+            if (e.KillCount is null || e.KillCount == 0 || string.IsNullOrEmpty(e.TargetFaction) || e.TargetType == null || !e.TargetType.Contains("MissionUtil_FactionTag_Pirate", StringComparison.InvariantCultureIgnoreCase))
             {
                 return;
             }
+
 
             MissionData missionData = new(null, currentStation, e);
             missionData.CurrentState = MissionState.Active;
@@ -97,8 +99,8 @@ namespace ODMissionStacker.Missions
             AddMissionToDictionary(ref odyssey ? ref odysseyMissionsData : ref horizonMissionsData, missionData);
 
             //Stack Information
-            StackInfo stackInfo = stackInformation.FirstOrDefault(x => string.Equals(x.IssuingFaction, missionData.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                                        string.Equals(x.TargetFaction, missionData.TargetFaction, StringComparison.OrdinalIgnoreCase));
+            StackInfo stackInfo = stackInformation.FirstOrDefault(x => x.IssuingFaction == missionData.IssuingFaction &&
+                                                                       x.TargetFaction == missionData.TargetFaction);
 
             if (stackInfo == default)
             {
@@ -119,20 +121,16 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            if (odyssey)
-            {
-                odysseyMissionsData[e.MissionID].CurrentState = MissionState.Redirectied;
-                odysseyMissionsData[e.MissionID].Kills = odysseyMissionsData[e.MissionID].KillCount;
-                return;
-            }
-
-            horizonMissionsData[e.MissionID].CurrentState = MissionState.Redirectied;
-            horizonMissionsData[e.MissionID].Kills = horizonMissionsData[e.MissionID].KillCount;
+            MissionData missionData = dict[e.MissionID];
+            missionData.CurrentState = MissionState.Redirectied;
+            missionData.Kills = missionData.KillCount;
         }
 
         private void OnMissionCompleted(object sender, MissionCompletedEvent.MissionCompletedEventArgs e)
@@ -142,15 +140,16 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            MissionData missionData = odyssey ? odysseyMissionsData[e.MissionID] : horizonMissionsData[e.MissionID];
+            MissionData missionData = dict[e.MissionID];
             missionData.CurrentState = MissionState.Complete;
             missionData.Reward = e.Reward;
-
         }
 
         private void OnMissionAbandonded(object sender, MissionAbandonedEvent.MissionAbandonedEventArgs e)
@@ -160,7 +159,7 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            if (odyssey ? (odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID)) : (horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID)))
             {
                 return;
             }
@@ -177,21 +176,36 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
+            //Ignore skimmers and zero value bounties.
+            if (e.VictimFaction.Contains("faction_none") || e.TotalReward <= 0)
+            {
+                return;
+            }
+
             Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
 
-            foreach (StackInfo faction in stackInformation)
+            bountiesData.Add(new BountyData(e));
+
+            if (bountiesData.Count > 20)
             {
-                MissionData mission = dict.FirstOrDefault(x => string.Equals(x.Value.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            string.Equals(x.Value.TargetFaction, e.VictimFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            x.Value.Kills < x.Value.KillCount &&
-                                                            x.Value.CurrentState == MissionState.Active).Value;
-                
+                bountiesData.RemoveAt(0);
+            }
+
+            for (int i = 0; i < stackInformation.Count; i++)
+            {
+                StackInfo faction = stackInformation[i];
+
+
+                MissionData mission = dict.FirstOrDefault(x => x.Value.IssuingFaction == faction.IssuingFaction &&
+                                                           x.Value.TargetFaction == e.VictimFaction
+                                                            && x.Value.CurrentState == MissionState.Active).Value;
+
                 if (mission == default)
                 {
                     continue;
                 }
 
-                mission.Kills++;
+                mission.KillsWithoutStateChange++;
             }
         }
 
@@ -210,7 +224,7 @@ namespace ODMissionStacker.Missions
             missionDictionary.Add(missionData.MissionID, missionData);
         }
 
-        public Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>> GetHistory(IProgress<string> progress)
+        public Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>, List<BountyData>> GetHistory(IProgress<string> progress, MissionsContainer container)
         {
             SubscribeToEvents();
 
@@ -218,8 +232,11 @@ namespace ODMissionStacker.Missions
 
             UnsubscribeFromEvents();
 
-            return Tuple.Create(horizonMissionsData, odysseyMissionsData);
+            progress.Report("Processing Log Events");
+
+            return Tuple.Create(horizonMissionsData, odysseyMissionsData, bountiesData);
         }
+
         private void SubscribeToEvents()
         {
             watcher.GetEvent<FileheaderEvent>()?.AddHandler(OnFileHeaderEvent);

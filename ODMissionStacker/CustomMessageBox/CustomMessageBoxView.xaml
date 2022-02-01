@@ -7,7 +7,6 @@
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         ShowInTaskbar="False"
-        Topmost="True"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         TextOptions.TextFormattingMode="Display"

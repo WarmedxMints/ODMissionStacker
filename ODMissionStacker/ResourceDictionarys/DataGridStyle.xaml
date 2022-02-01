@@ -106,7 +106,7 @@
         <Setter Property="IsHitTestVisible"
                 Value="False" />
         <Setter Property="Margin"
-                Value="0,0,5,1"  />
+                Value="0,0,5,1" />
         <Setter Property="Background"
                 Value="Transparent" />
         <Setter Property="BorderBrush"

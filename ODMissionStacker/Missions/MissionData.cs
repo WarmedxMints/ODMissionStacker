@@ -32,7 +32,7 @@ namespace ODMissionStacker.Missions
             SourceStation = currentStation.StationName;
             MissionID = e.MissionID;
             IssuingFaction = e.Faction;
-            destinationSystem = e.DestinationSystem;
+            DestinationSystem = e.DestinationSystem;
             TargetFaction = e.TargetFaction;
             LocalisedName = e.LocalisedName;
             Reward = e.Reward;
@@ -42,52 +42,47 @@ namespace ODMissionStacker.Missions
             ExpireTime = e.Expiry ?? DateTime.Now;
         }
 
-        private string sourceSystem;
-        private long systemAddress;
-        private string sourceStation;
-        private long missionID;
-        private string issuingFaction;
-        private string destinationSystem;
-        private string targetFaction;
-        private string localisedName;
-        private int reward;
-        private int killCount;
         private int kills;
-        private bool wing;
         private MissionState currentState;
-        private DateTime collectionTime;
         private DateTime expireTime;
         private bool highlight;
 
-        public string SourceSystem { get => sourceSystem; set { sourceSystem = value; OnPropertyChanged(); } }
-        public long SystemAddress { get => systemAddress; set { systemAddress = value; OnPropertyChanged(); } }
-        public string SourceStation { get => sourceStation; set { sourceStation = value; OnPropertyChanged(); } }
-        public long MissionID { get => missionID; set { missionID = value; OnPropertyChanged(); } }
-        public string IssuingFaction { get => issuingFaction; set { issuingFaction = value; OnPropertyChanged(); } }
-        public string DestinationSystem { get => destinationSystem; set { destinationSystem = value; OnPropertyChanged(); } }
-        public string TargetFaction { get => targetFaction; set { targetFaction = value; OnPropertyChanged(); } }
-        public string LocalisedName { get => localisedName; set { localisedName = value; OnPropertyChanged(); } }
-        public int Reward { get => reward; set { reward = value; OnPropertyChanged(); } }
-        public int KillCount { get => killCount; set { killCount = value; OnPropertyChanged(); } }
+        public string SourceSystem { get; set; }
+        public long SystemAddress { get; set; }
+        public string SourceStation { get; set; }
+        public long MissionID { get; set; }
+        public string IssuingFaction { get; set; }
+        public string DestinationSystem { get; set; }
+        public string TargetFaction { get; set; }
+        public string LocalisedName { get; set; }
+        public int Reward { get; set; }
+        public int KillCount { get; set; }
         public int Kills
         {
             get => kills;
             set
             {
-                kills = value;
+                kills = Math.Clamp(value, 0, KillCount);
 
                 if (currentState is MissionState.Active or MissionState.Redirectied)
                 {
-                    CurrentState = kills >= killCount ? MissionState.Redirectied : MissionState.Active;
+                    CurrentState = kills >= KillCount ? MissionState.Redirectied : MissionState.Active;
                 }
 
                 OnPropertyChanged();
             }
         }
-        public bool Wing { get => wing; set { wing = value; OnPropertyChanged(); } }
+
+        public int KillsWithoutStateChange
+        {
+            get => kills;
+            set { kills = Math.Clamp(value, 0, KillCount); OnPropertyChanged("Kills"); }
+        }
+
+        public bool Wing { get; set; }
         public MissionState CurrentState { get => currentState; set { currentState = value; OnPropertyChanged(); } }
-        public DateTime CollectionTime { get => collectionTime; set { collectionTime = value; OnPropertyChanged(); } }
-        public DateTime ExpireTime { get => expireTime; set { expireTime = value; OnPropertyChanged(); } }
+        public DateTime CollectionTime { get; set; }
+        public DateTime ExpireTime { get => expireTime; set { expireTime = value; } }
         public bool Highlight { get => highlight; set { highlight = value; OnPropertyChanged(); } }
 
         [IgnoreDataMember]
@@ -150,25 +145,25 @@ namespace ODMissionStacker.Missions
         private void DeleteMission(object sender, RoutedEventArgs e)
         {
             MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Delete Mission from {issuingFaction} at {sourceStation} for {killCount} kills?",
+                                                     $"Delete Mission from {IssuingFaction} at {SourceStation} for {KillCount} kills?",
                                                      MessageBoxButton.YesNo);
 
             if (ret == MessageBoxResult.Yes)
             {
-                container.DeleteMission(this);
+                container?.DeleteMission(this);
             }
         }
 
         private void MarkAsActive(object sender, RoutedEventArgs e)
         {
             MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Mark Mission from {issuingFaction} at {sourceStation} for {killCount} kills as Active?",
+                                                     $"Mark Mission from {IssuingFaction} at {SourceStation} for {KillCount} kills as Active?",
                                                      MessageBoxButton.YesNo);
 
             if (ret == MessageBoxResult.Yes)
             {
                 CurrentState = MissionState.Active;
-                container.MoveMission(this, true);
+                container?.MoveMission(this, true);
                 OnPropertyChanged("ContextMenu");
             }
         }
@@ -176,13 +171,13 @@ namespace ODMissionStacker.Missions
         private void MarkAsAbandonded(object sender, RoutedEventArgs e)
         {
             MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Mark Mission from {issuingFaction} at {sourceStation} for {killCount} kills as Abandonded?",
+                                                     $"Mark Mission from {IssuingFaction} at {SourceStation} for {KillCount} kills as Abandonded?",
                                                      MessageBoxButton.YesNo);
 
             if (ret == MessageBoxResult.Yes)
             {
                 CurrentState = MissionState.Abandonded;
-                container.MoveMission(this, false);
+                container?.MoveMission(this, false);
                 OnPropertyChanged("ContextMenu");
             }
         }
@@ -190,14 +185,14 @@ namespace ODMissionStacker.Missions
         private void MarkAsCompleted(object sender, RoutedEventArgs e)
         {
             MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Mark Mission {issuingFaction} at {sourceStation} for {killCount} kills as Completed?",
+                                                     $"Mark Mission {IssuingFaction} at {SourceStation} for {KillCount} kills as Completed?",
                                                      MessageBoxButton.YesNo);
 
             if (ret == MessageBoxResult.Yes)
             {
                 CurrentState = MissionState.Complete;
-                Kills = killCount;
-                container.MoveMission(this, false);
+                Kills = KillCount;
+                container?.MoveMission(this, false);
                 OnPropertyChanged("ContextMenu");
             }
         }
@@ -205,12 +200,12 @@ namespace ODMissionStacker.Missions
         private void AddToMissionSource(object sender, RoutedEventArgs e)
         {
             MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Add {sourceSystem} - {sourceStation} to Mission Source Clipboard?",
+                                                     $"Add {SourceSystem} - {SourceStation} to Mission Source Clipboard?",
                                                      MessageBoxButton.YesNo);
 
             if (ret == MessageBoxResult.Yes)
             {
-                container.AddToMissionSourceClipBoard(this);
+                container?.AddToMissionSourceClipBoard(this);
             }
         }
 

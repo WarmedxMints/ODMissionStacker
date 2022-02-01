@@ -1,5 +1,6 @@
 ﻿using ODMissionStacker.CustomMessageBox;
 using ODMissionStacker.Utils;
+using System;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Windows;
@@ -13,8 +14,8 @@ namespace ODMissionStacker.Missions
 
         public void SetContainer(MissionsContainer container) => this.container = container;
 
-        private string detinationName;
-        public string DestinationName { get => detinationName; set { detinationName = value; OnPropertyChanged(); } }
+        private string destinationName;
+        public string DestinationName { get => destinationName; set { destinationName = value; OnPropertyChanged(); } }
 
         private string systemName;
         public string SystemName { get => systemName; set { systemName = value; OnPropertyChanged(); } }
@@ -28,7 +29,7 @@ namespace ODMissionStacker.Missions
         {
             get
             {
-                if(contextMenu is not null)
+                if (contextMenu is not null)
                 {
                     return contextMenu;
                 }
@@ -83,6 +84,25 @@ namespace ODMissionStacker.Missions
         private void CopyToClipboard(object sender, RoutedEventArgs e)
         {
             Helpers.SetClipboard(((MenuItem)sender).Tag);
+        }
+
+        public override bool Equals(object obj)
+        {
+            //Check for null and compare run-time types.
+            if ((obj == null) || !GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+            else
+            {
+                MissionSourceClipboardData p = (MissionSourceClipboardData)obj;
+                return (destinationName == p.DestinationName) && (stationName == p.StationName) && (systemName == p.SystemName);
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(destinationName, stationName, systemName);
         }
     }
 }

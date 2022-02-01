@@ -1,5 +1,4 @@
-﻿using EliteJournalReader.Events;
-using ODMissionStacker.Utils;
+﻿using ODMissionStacker.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -116,17 +115,19 @@ namespace ODMissionStacker.Missions
             foreach (TargetFactionInfo info in TargetFactionInfo)
             {
                 List<MissionData> data = Missions.Where(x => string.Equals(x.TargetFaction, info.TargetFaction, StringComparison.OrdinalIgnoreCase)).ToList();
+
                 info.UpdateValues(data);
             }
         }
 
-        public void OnBounty(BountyEvent.BountyEventArgs e)
+        public void OnBounty(BountyData data)
         {
+            IOrderedEnumerable<MissionData> missions = new List<MissionData>(Missions).OrderBy(x => x.CollectionTime);
+
             foreach (StackInfo faction in stackInformation)
             {
-                MissionData mission = Missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            string.Equals(x.TargetFaction, e.VictimFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            x.Kills < x.KillCount &&
+                MissionData mission = missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                            string.Equals(x.TargetFaction, data.VictimFaction, StringComparison.OrdinalIgnoreCase) &&
                                                             x.CurrentState == MissionState.Active);
 
                 if (mission == default)
@@ -134,11 +135,12 @@ namespace ODMissionStacker.Missions
                     continue;
                 }
 
-                mission.Kills++;
+                mission.KillsWithoutStateChange++;
 
                 UpdateFactionInfo();
             }
         }
+
 
         public void UpdateMissionsStates(Station currentStation)
         {
@@ -168,6 +170,42 @@ namespace ODMissionStacker.Missions
                 {
                     mission.CurrentState = MissionState.ReadyToTurnIn;
                 }
+            }
+        }
+
+        internal void UpdateKills(int v)
+        {
+            if (Missions is null || Missions.Count == 0)
+            {
+                return;
+            }
+
+            IOrderedEnumerable<MissionData> missions = v > 0
+                ? new List<MissionData>(Missions).OrderBy(x => x.CollectionTime)
+                : new List<MissionData>(Missions).OrderByDescending(x => x.CollectionTime);
+
+            List<string> factions = new();
+
+
+            foreach (StackInfo faction in stackInformation)
+            {
+                MissionData mission = v > 0
+                    ? missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                            factions.Contains(x.IssuingFaction) == false &&
+                                                            x.Kills < x.KillCount)
+                    : missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                     factions.Contains(x.IssuingFaction) == false &&
+                                                     x.Kills > 0);
+                if (mission == default)
+                {
+                    continue;
+                }
+
+                factions.Add(faction.IssuingFaction);
+
+                mission.Kills += v;
+
+                UpdateFactionInfo();
             }
         }
     }

@@ -13,11 +13,13 @@ using System.Windows.Media;
 
 namespace ODMissionStacker
 {
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        #region Property Changed
         // Declare the event
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -25,11 +27,18 @@ namespace ODMissionStacker
         // The calling member's name will be used as the parameter.
         protected void OnPropertyChanged([CallerMemberName] string name = null)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            if (Dispatcher.CheckAccess())
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+                return;
+            }
+
+            Dispatcher.Invoke(() =>
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
             });
         }
+        #endregion
 
         #region Custom Title Bar
         // Can execute
@@ -65,6 +74,11 @@ namespace ODMissionStacker
         // State change
         private void MainWindowStateChangeRaised(object sender, EventArgs e)
         {
+            if (Settings is not null)
+            {
+                Settings.LastWindowPos.State = WindowState;
+            }
+
             if (WindowState == WindowState.Maximized)
             {
                 MainWindowBorder.BorderThickness = new Thickness(8);
@@ -79,33 +93,42 @@ namespace ODMissionStacker
             }
         }
         #endregion
+
         public AppSettings Settings { get; set; } = new();
 
         private MissionsContainer missionsContainer;
         public MissionsContainer MissionsContainer { get => missionsContainer; set { missionsContainer = value; OnPropertyChanged(); } }
 
-
-
         public MainWindow()
         {
-
             missionsContainer = new(Settings);
-
+            Settings.LoadSettings();
             InitializeComponent();
         }
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+
+        #region Window Methods
+        private void SimpleCommand_OnExecuted(object sender, object e)
         {
-            Settings.LoadSettings();
-            ShowClipboard(Settings.ShowClipBoard);
-            MissionsContainer.Init();
+            Settings.SetWindowPos();
+            WindowState = WindowState.Normal;
         }
 
-        private void Window_Closed(object sender, EventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            ShowSiderBar(Settings.ShowClipBoard, "\xE974", "\xE973", ClipboardColumn, ClipboardExpander);
+            ShowSiderBar(Settings.ShowBountyBoard, "\xE973", "\xE974", BountyColumn, BountyBoardExapander);
+            MissionsContainer.Init();
+            WindowState = Settings.LastWindowPos.State;
+        }
+
+        private void Root_Closing(object sender, CancelEventArgs e)
         {
             MissionsContainer.SaveData();
             Settings.SaveSettings();
         }
+        #endregion
 
+        #region Datagrid Load and Sort Methods
         private static void ItemContainerGenerator_StatusChanged(object sender, DataGrid dataGrid)
         {
             ItemContainerGenerator icg = (ItemContainerGenerator)sender;
@@ -123,27 +146,9 @@ namespace ODMissionStacker
 
         private void MissionDataGrid_Loaded(object sender, RoutedEventArgs e)
         {
-            DataGrid grid = ((DataGrid)sender);
+            DataGrid grid = (DataGrid)sender;
             grid.Items.IsLiveSorting = true;
             SortMissionDataGrid(true);
-
-            grid.ItemContainerGenerator.StatusChanged += (sender, e) => ItemContainerGenerator_StatusChanged(sender, grid);
-        }
-
-        private void StackInfoGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            DataGrid grid = ((DataGrid)sender);
-            grid.Items.IsLiveSorting = true;
-            SortStackInfoGrid();
-
-            grid.ItemContainerGenerator.StatusChanged += (sender, e) => ItemContainerGenerator_StatusChanged(sender, grid);
-        }
-
-        private void TargetFactionGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            DataGrid grid = ((DataGrid)sender);
-            grid.Items.IsLiveSorting = true;
-            SortTargetFactionGrid();
 
             grid.ItemContainerGenerator.StatusChanged += (sender, e) => ItemContainerGenerator_StatusChanged(sender, grid);
         }
@@ -202,14 +207,13 @@ namespace ODMissionStacker
             SortDataGrid(MissionDataGrid, sortDescriptions, 2, resize);
         }
 
-        private void SortStackInfoGrid()
+        private void TargetFactionGrid_Loaded(object sender, RoutedEventArgs e)
         {
-            List<SortDescription> sortDescriptions = new();
+            DataGrid grid = (DataGrid)sender;
+            grid.Items.IsLiveSorting = true;
+            SortTargetFactionGrid();
 
-            sortDescriptions.Add(new SortDescription("IssuingFaction", ListSortDirection.Ascending));
-            sortDescriptions.Add(new SortDescription("TargetFaction", ListSortDirection.Ascending));
-
-            SortDataGrid(StackInfoGrid, sortDescriptions, 0);
+            grid.ItemContainerGenerator.StatusChanged += (sender, e) => ItemContainerGenerator_StatusChanged(sender, grid);
         }
 
         private void SortTargetFactionGrid()
@@ -219,6 +223,25 @@ namespace ODMissionStacker
             sortDescriptions.Add(new SortDescription("TargetFaction", ListSortDirection.Ascending));
 
             SortDataGrid(TargetFactionGrid, sortDescriptions);
+        }
+
+        private void StackInfoGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            DataGrid grid = (DataGrid)sender;
+            grid.Items.IsLiveSorting = true;
+            SortStackInfoGrid();
+
+            grid.ItemContainerGenerator.StatusChanged += (sender, e) => ItemContainerGenerator_StatusChanged(sender, grid);
+        }
+
+        private void SortStackInfoGrid()
+        {
+            List<SortDescription> sortDescriptions = new();
+
+            sortDescriptions.Add(new SortDescription("TargetFaction", ListSortDirection.Ascending));
+            sortDescriptions.Add(new SortDescription("IssuingFaction", ListSortDirection.Ascending));
+
+            SortDataGrid(StackInfoGrid, sortDescriptions, 0);
         }
 
         private static void SortDataGrid(DataGrid dataGrid, List<SortDescription> sortDescriptions, int ignoreColoumn = -1, bool resize = true)
@@ -238,7 +261,7 @@ namespace ODMissionStacker
             // Refresh items to display sort
             dataGrid.Items.Refresh();
 
-            if(resize == false)
+            if (resize == false)
             {
                 return;
             }
@@ -257,6 +280,35 @@ namespace ODMissionStacker
             }
         }
 
+        private void BountyFeedGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            DataGrid grid = (DataGrid)sender;
+            grid.Items.IsLiveSorting = true;
+
+            List<SortDescription> sortDescriptions = new();
+
+            sortDescriptions.Add(new SortDescription("TimeStamp", ListSortDirection.Descending));
+
+            SortDataGrid(grid, sortDescriptions, -1, false);
+        }
+
+        private void ClipBoardDataGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            DataGrid grid = sender as DataGrid;
+
+            grid.Items.IsLiveSorting = true;
+
+            List<SortDescription> sortDescriptions = new();
+
+            sortDescriptions.Add(new SortDescription("DestinationName", ListSortDirection.Ascending));
+            sortDescriptions.Add(new SortDescription("SystemName", ListSortDirection.Ascending));
+            sortDescriptions.Add(new SortDescription("StationName", ListSortDirection.Ascending));
+
+            SortDataGrid(grid, sortDescriptions);
+        }
+        #endregion
+
+        #region Button Methods
         private void KillCountBox_Click(object sender, RoutedEventArgs e)
         {
             MissionsContainer.CurrentManager.UpdateFactionInfo();
@@ -264,6 +316,113 @@ namespace ODMissionStacker
             MissionDataGrid.UnselectAllCells();
         }
 
+        private void BountyBoardExapander_Click(object sender, RoutedEventArgs e)
+        {
+            Settings.ShowBountyBoard = !Settings.ShowBountyBoard;
+
+            ShowSiderBar(Settings.ShowBountyBoard, "\xE973", "\xE974", BountyColumn, BountyBoardExapander);
+        }
+
+        private void AddClipboardSource_Click(object sender, RoutedEventArgs e)
+        {
+            AddClipboardSourceView clipboardSourceView = new()
+            {
+                Owner = this
+            };
+
+            _ = clipboardSourceView.ShowDialog();
+
+            if ((bool)clipboardSourceView.DialogResult)
+            {
+                MissionData data = new()
+                {
+                    DestinationSystem = clipboardSourceView.TargetSystem,
+                    SourceSystem = clipboardSourceView.SourceSystem,
+                    SourceStation = clipboardSourceView.SourceStation
+                };
+
+                MissionsContainer.AddToMissionSourceClipBoard(data);
+            }
+        }
+
+        private void PurgeCompleted_Click(object sender, RoutedEventArgs e)
+        {
+            var del = ODMessageBox.Show(this, "Purge All Completed Missions?", MessageBoxButton.YesNo);
+
+            if (del == MessageBoxResult.Yes)
+            {
+                MissionsContainer.PurgeMissions(MissionState.Complete);
+            }
+        }
+
+        private void PurgeAbandonded_Click(object sender, RoutedEventArgs e)
+        {
+            var del = ODMessageBox.Show(this, "Purge All Abandonded Missions?", MessageBoxButton.YesNo);
+
+            if (del == MessageBoxResult.Yes)
+            {
+                MissionsContainer.PurgeMissions(MissionState.Abandonded);
+            }
+        }
+
+        private void ReadHistory_Click(object sender, RoutedEventArgs e)
+        {
+            MissionHistoryReaderView ret = new(MissionsContainer)
+            {
+                Owner = this
+            };
+
+            if ((bool)ret.ShowDialog())
+            {
+                MissionsContainer.SaveData();
+            }
+        }
+
+        private void KillsDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (missionsContainer.CurrentManager == null)
+            {
+                return;
+            }
+
+            missionsContainer.CurrentManager.UpdateKills(-1);
+        }
+
+        private void KillsUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (missionsContainer.CurrentManager == null)
+            {
+                return;
+            }
+
+            missionsContainer.CurrentManager.UpdateKills(1);
+        }
+
+        private void CopyToClipboard_Click(object sender, RoutedEventArgs e)
+        {
+            MissionData mission = (sender as Button).DataContext as MissionData;
+
+            Helpers.SetClipboard(mission.SourceSystem);
+
+            MissionDataGrid.UnselectAllCells();
+        }
+
+        private void ClipboardExpander_Click(object sender, RoutedEventArgs e)
+        {
+            Settings.ShowClipBoard = !Settings.ShowClipBoard;
+
+            ShowSiderBar(Settings.ShowClipBoard, "\xE974", "\xE973", ClipboardColumn, ClipboardExpander);
+        }
+
+        private static void ShowSiderBar(bool show, string showText, string hideText, ColumnDefinition columnDefinition, Button button)
+        {
+            columnDefinition.Width = show ? new GridLength(1.0, GridUnitType.Auto) : new GridLength(0);
+
+            button.Content = show ? showText : hideText;
+        }
+        #endregion
+
+        #region DropDown Methods
         private void DisplayModeSelecter_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             MissionsContainer?.SetCurrentManager();
@@ -277,16 +436,9 @@ namespace ODMissionStacker
         {
             SortMissionDataGrid(false);
         }
+        #endregion
 
-        private void CopyToClipboard_Click(object sender, RoutedEventArgs e)
-        {
-            MissionData mission = (sender as Button).DataContext as MissionData;
-
-            Helpers.SetClipboard(mission.SourceSystem);
-
-            MissionDataGrid.UnselectAllCells();
-        }
-
+        #region Datagrid Mouse Enter/Leave Methods
         private void MissionsDateGridRow_MouseEnter(object sender, MouseEventArgs e)
         {
             if (StackInfoGrid == null || Settings.ViewDisplayMode == DisplayMode.Completed)
@@ -301,6 +453,10 @@ namespace ODMissionStacker
             {
                 DataGridRow dgRow = (DataGridRow)StackInfoGrid.ItemContainerGenerator
                                                .ContainerFromIndex(i);
+                if (dgRow == null)
+                {
+                    continue;
+                }
 
                 StackInfo stackinfo = (StackInfo)StackInfoGrid.Items[i];
 
@@ -326,6 +482,11 @@ namespace ODMissionStacker
             {
                 DataGridRow dgRow = (DataGridRow)StackInfoGrid.ItemContainerGenerator
                                                .ContainerFromIndex(i);
+
+                if (dgRow is null)
+                {
+                    continue;
+                }
 
                 dgRow.Foreground = foreGround;
             }
@@ -362,88 +523,6 @@ namespace ODMissionStacker
                 missionData.Highlight = false;
             }
         }
-
-        private void ClipboardExpander_Click(object sender, RoutedEventArgs e)
-        {
-            Settings.ShowClipBoard = !Settings.ShowClipBoard;
-
-            ShowClipboard(Settings.ShowClipBoard);
-        }
-
-        private void ShowClipboard(bool show)
-        {
-            ClipboardColumn.Width = show ? new GridLength(1.0, GridUnitType.Auto) : new GridLength(0);
-
-            ClipboardExpander.Content = show ? "\xE974" : "\xE973";
-
-        }
-
-        private void AddClipboardSource_Click(object sender, RoutedEventArgs e)
-        {
-            AddClipboardSourceView clipboardSourceView = new()
-            {
-                Owner = this
-            };
-
-            _ = clipboardSourceView.ShowDialog();
-
-            if((bool)clipboardSourceView.DialogResult)
-            {
-                MissionData data = new()
-                {
-                    DestinationSystem = clipboardSourceView.TargetSystem,
-                    SourceSystem = clipboardSourceView.SourceSystem,
-                    SourceStation = clipboardSourceView.SourceStation
-                };
-
-                MissionsContainer.AddToMissionSourceClipBoard(data);
-            }
-        }
-
-        private void ClipBoardDataGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            DataGrid grid = sender as DataGrid;
-
-            grid.Items.IsLiveSorting = true;
-
-            List<SortDescription> sortDescriptions = new();
-
-            sortDescriptions.Add(new SortDescription("DestinationName", ListSortDirection.Ascending));
-            sortDescriptions.Add(new SortDescription("SystemName", ListSortDirection.Ascending));
-            sortDescriptions.Add(new SortDescription("StationName", ListSortDirection.Ascending));
-
-            SortDataGrid(grid, sortDescriptions);
-        }
-
-        private void PurgeCompleted_Click(object sender, RoutedEventArgs e)
-        {
-            var del = ODMessageBox.Show(this, "Purge All Completed Missions?", MessageBoxButton.YesNo);
-
-            if(del == MessageBoxResult.Yes)
-            {
-                MissionsContainer.PurgeMissions(MissionState.Complete);
-            }
-        }
-
-        private void PurgeAbandonded_Click(object sender, RoutedEventArgs e)
-        {
-            var del = ODMessageBox.Show(this, "Purge All Abandonded Missions?", MessageBoxButton.YesNo);
-
-            if (del == MessageBoxResult.Yes)
-            {
-                MissionsContainer.PurgeMissions(MissionState.Abandonded);
-            }
-        }
-
-        private void ReadHistory_Click(object sender, RoutedEventArgs e)
-        {
-            var ret = new MissionHistoryReaderView(MissionsContainer);
-            ret.Owner = this;
-
-            if((bool)ret.ShowDialog())
-            {
-                MissionsContainer.SaveData();
-            }
-        }
+        #endregion
     }
 }

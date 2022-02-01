@@ -7,7 +7,6 @@
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         ShowInTaskbar="False"
-        Topmost="True"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         TextOptions.TextFormattingMode="Display"
@@ -98,8 +97,7 @@
                             Visibility="Hidden">
                 <TextBlock x:Name="TitleText"
                            Text="Processing Journal File : "/>
-                <TextBlock x:Name="ProgressText"
-                           Text="Progress"/>
+                <TextBlock x:Name="ProgressText" />
                 </StackPanel>
                 
                 <Button x:Name="ReadHistoryBtn"

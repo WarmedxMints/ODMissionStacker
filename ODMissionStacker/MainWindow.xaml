@@ -6,28 +6,38 @@
         xmlns:custom="clr-namespace:ODMissionStacker.CustomControls"
         xmlns:settings="clr-namespace:ODMissionStacker.Settings"
         xmlns:System="clr-namespace:System;assembly=mscorlib"
+        xmlns:utils="clr-namespace:ODMissionStacker.Utils"
         mc:Ignorable="d"
         FontSize="16"
         Title="OD MASSACRE STACK MANAGER v1.1"
         Loaded="Window_Loaded"
-        Closed="Window_Closed"
+        Closing="Root_Closing"
         Background="{DynamicResource Background}"
         Foreground="{DynamicResource Foreground}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}"
-        Height="850"
-        Width="1320"
+        Top="{Binding Settings.LastWindowPos.Top, Mode=TwoWay}"
+        Left="{Binding Settings.LastWindowPos.Left, Mode=TwoWay}"
+        Height="{Binding Settings.LastWindowPos.Height, Mode=TwoWay}"
+        Width="{Binding Settings.LastWindowPos.Width, Mode=TwoWay}"
         StateChanged="MainWindowStateChangeRaised"
-        WindowStartupLocation="CenterScreen"
         Icon="/Images/target.png"
         x:Name="Root">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="30" />
     </WindowChrome.WindowChrome>
+    <Window.InputBindings>
+        <KeyBinding Gesture="CTRL+R">
+            <KeyBinding.Command>
+                <utils:SimpleCommand Executed="SimpleCommand_OnExecuted" />
+            </KeyBinding.Command>
+        </KeyBinding>
+    </Window.InputBindings>
 
     <Window.Resources>
 
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-
+        <utils:DisplyModeToVisibilty x:Key="DisplayModeToVis" />
+        <utils:DisplyModeToVisibiltyReversed x:Key="DisplayModeToVisReversed" />
         <ObjectDataProvider x:Key="DisplayModeEnum"
                             MethodName="GetValues"
                             ObjectType="{x:Type System:Enum}">
@@ -43,7 +53,6 @@
                 <x:Type TypeName="settings:GridSorting"></x:Type>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
-
     </Window.Resources>
 
     <Window.CommandBindings>
@@ -73,7 +82,7 @@
                 <RowDefinition Height="30" />
                 <RowDefinition Height="20" />
                 <RowDefinition Height="40" />
-                <RowDefinition Height="470" />
+                <RowDefinition Height="495" />
                 <RowDefinition Height="20" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="20" />
@@ -161,7 +170,7 @@
                               x:Name="SortingModeSelector"
                               Width="110"
                               HorizontalAlignment="Left"
-                              SelectionChanged="SortingModeSelector_SelectionChanged" />          
+                              SelectionChanged="SortingModeSelector_SelectionChanged" />
                 </StackPanel>
 
 
@@ -169,20 +178,8 @@
                             Grid.Column="3"
                             VerticalAlignment="Top"
                             Height="30"
-                            Margin="10,0">
-                    <StackPanel.Style>
-                        <Style TargetType="{x:Type StackPanel}">
-                            <Setter Property="Visibility"
-                                    Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Settings.ViewDisplayMode}"
-                                             Value="{x:Static settings:DisplayMode.Completed}">
-                                    <Setter Property="Visibility"
-                                            Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
+                            Margin="10,0"
+                            Visibility="{Binding Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVis}, ConverterParameter=Completed}">
                     <Button x:Name="PurgeCompleted"
                             Content=" Purge Completed "
                             Click="PurgeCompleted_Click" />
@@ -201,26 +198,38 @@
                     <TextBlock Text="CMDR : "
                                VerticalAlignment="Center" />
                     <ComboBox ItemsSource="{Binding Settings.Commanders}"
-                          SelectedItem="{Binding Settings.CurrentCommander}"
-                          VerticalAlignment="Center"
-                              MinWidth="150"/>
+                              SelectedItem="{Binding Settings.CurrentCommander}"
+                              VerticalAlignment="Center"
+                              MinWidth="150" />
                 </StackPanel>
             </Grid>
             <!--#endregion-->
 
-            <Grid Grid.Column="1"
+            <Grid Grid.Column="0"
                   Grid.Row="3"
-                  Grid.ColumnSpan="2">
+                  Grid.ColumnSpan="3">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20" />
                     <ColumnDefinition Width="0"
-                                      x:Name="ClipboardColumn"/>
-                    <ColumnDefinition Width="20"/>
+                                      x:Name="BountyColumn" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="0"
+                                      x:Name="ClipboardColumn" />
+                    <ColumnDefinition Width="20" />
                 </Grid.ColumnDefinitions>
-                
+
+                <Button x:Name="BountyBoardExapander"
+                        Grid.Column="0"
+                        FontSize="16"
+                        Margin="0,41,0,20"
+                        FontFamily="Segoe MDL2 Assets"
+                        Content="&#xE974;"
+                        Click="BountyBoardExapander_Click" />
+
                 <!--#region Mission Data-->
                 <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.Missions}"
                           x:Name="MissionDataGrid"
+                          Grid.Column="2"
                           IsHitTestVisible="True"
                           HorizontalAlignment="Left"
                           Loaded="MissionDataGrid_Loaded"
@@ -290,7 +299,7 @@
                                             Width="SizeToCells"
                                             Binding="{Binding SourceStation}" />
                         <DataGridTextColumn Header="ISSUING FACTION"
-                                            MinWidth="70"
+                                            MinWidth="130"
                                             x:Name="FACION"
                                             Width="*"
                                             HeaderStyle="{DynamicResource HeaderLeft}"
@@ -300,17 +309,56 @@
                                             Width="SizeToCells"
                                             HeaderStyle="{DynamicResource HeaderLeft}"
                                             Binding="{Binding TargetFaction}" />
-                        <DataGridTemplateColumn Header="KILLS"
-                                                MinWidth="120">
+                        <DataGridTemplateColumn  MinWidth="100">
+                            <DataGridTemplateColumn.Header>
+                                <Grid VerticalAlignment="Center"
+                                      HorizontalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20" />
+                                        <ColumnDefinition Width="60" />
+                                        <ColumnDefinition Width="20" />
+                                    </Grid.ColumnDefinitions>
+                                    <RepeatButton Width="16"
+                                                  Height="16"
+                                                  Grid.Column="0"
+                                                  x:Name="KillsDownButton"
+                                                  Click="KillsDownButton_Click"
+                                                  FontFamily="Segoe MDL2 Assets"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Center"
+                                                  FontSize="12"
+                                                  Content="&#xE738;"
+                                                  Delay="1000" />
+
+                                    <TextBlock Text="KILLS"
+                                               Grid.Column="1"
+                                               HorizontalAlignment="Center" />
+
+                                    <RepeatButton Width="16"
+                                                  Height="16"
+                                                  Grid.Column="2"
+                                                  x:Name="KillsUpButton"
+                                                  Click="KillsUpButton_Click"
+                                                  FontFamily="Segoe MDL2 Assets"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Center"
+                                                  HorizontalContentAlignment="Center"
+                                                  FontSize="12"
+                                                  Content="&#xE710;"
+                                                  Delay="1000" />
+                                </Grid>
+                            </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <custom:KillCountBox Minimum="0"
-                                                         Maximum="{Binding KillCount}"
-                                                         ButtonStep="1"
-                                                         VerticalAlignment="Center"
-                                                         HorizontalAlignment="Center"
-                                                         Click="KillCountBox_Click"
-                                                         Value="{Binding Path=Kills, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Grid Margin="5,0,0,0">
+                                        <custom:KillCountBox Minimum="0"
+                                                             Maximum="{Binding KillCount}"
+                                                             ButtonStep="1"
+                                                             VerticalAlignment="Center"
+                                                             HorizontalAlignment="Center"
+                                                             Click="KillCountBox_Click"
+                                                             Value="{Binding Path=Kills, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -327,12 +375,20 @@
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="EXPIRES"
                                             MinWidth="135"
-                                            Width="SizeToCells"
-                                            Binding="{Binding ExpireTime, StringFormat={}{0:ddd\, MMM d yyyy\, hh:mm}}">
+                                            Width="SizeToCells">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="HorizontalAlignment"
                                             Value="Right" />
+                                    <Setter Property="Text"
+                                            Value="{Binding ExpireTime, StringFormat={}{0:ddd\, MMM d\, hh:mm}}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=Root, Path=Settings.ViewDisplayMode}"
+                                                     Value="{x:Static settings:DisplayMode.Completed}">
+                                            <Setter Property="Text"
+                                                    Value="{Binding Path=ExpireTime, StringFormat={}{0:ddd\, MMM d yyyy\, hh:mm}}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -353,14 +409,65 @@
                 <!--#endregion-->
 
                 <Button x:Name="ClipboardExpander"
-                        Grid.Column="2"
+                        Grid.Column="4"
                         FontSize="16"
                         Margin="0,41,0,20"
                         FontFamily="Segoe MDL2 Assets"
                         Content="&#xE973;"
-                        Click="ClipboardExpander_Click"/>
-                
+                        Click="ClipboardExpander_Click" />
+
+                <!--#region Bounty Data-->
                 <Grid Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="20" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="5" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="BOUTNY FEED"
+                               Grid.Column="1" />
+
+                    <DataGrid Grid.Row="2"
+                              Grid.Column="1"
+                              HeadersVisibility="Column"
+                              AutoGenerateColumns="False"
+                              x:Name="BountyFeedGrid"
+                              Loaded="BountyFeedGrid_Loaded"
+                              ItemsSource="{Binding MissionsContainer.Bounties}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="TARGET"
+                                                Width="155"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                Binding="{Binding Target}" />
+                            <DataGridTextColumn Header="TARGET FACTION"
+                                                Width="200"
+                                                MaxWidth="200"
+                                                HeaderStyle="{DynamicResource HeaderLeft}"
+                                                Binding="{Binding VictimFaction}" />
+                            <DataGridTextColumn Header="REWARD"
+                                                Width="90"
+                                                Binding="{Binding TotalReward,StringFormat={}{0:N0} cr}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment"
+                                                Value="Right" />
+                                        <Setter Property="Text"
+                                                Value="1,999,999" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+                <!--#endregion-->
+
+                <!--#region Clipboard-->
+                <Grid Grid.Column="3">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="20" />
                         <ColumnDefinition />
@@ -374,12 +481,12 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="MISSION SOURCE CLIPBOARD" 
-                               Grid.Column="1"/>
+                    <TextBlock Text="MISSION SOURCE CLIPBOARD"
+                               Grid.Column="1" />
 
                     <Button Content="ADD SOURCE"
-                            Grid.Column="3" 
-                            Click="AddClipboardSource_Click"/>
+                            Grid.Column="3"
+                            Click="AddClipboardSource_Click" />
 
                     <DataGrid ItemsSource="{Binding MissionsContainer.MissionSourceClipboards}"
                               Grid.Column="1"
@@ -440,6 +547,8 @@
                     </DataGrid>
                 </Grid>
             </Grid>
+            <!--#endregion-->
+
             <Grid Grid.Column="1"
                   Grid.Row="5">
                 <Grid.ColumnDefinitions>
@@ -491,7 +600,7 @@
                                                    Grid.Row="0"
                                                    TextAlignment="Right" />
 
-                                        <TextBlock Text="Active MIssions"
+                                        <TextBlock Text="Active Missions"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="0"
                                                    Grid.Row="1" />
@@ -511,46 +620,50 @@
                                                    Grid.Row="2"
                                                    TextAlignment="Right" />
 
-                                        <TextBlock Text="Kills Remaining"
+                                        <TextBlock Text="Total Kills"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="0"
                                                    Grid.Row="3" />
-                                        <TextBlock Text="{Binding RemainingCount}"
+                                        <TextBlock Text="{Binding TotalKills}"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="1"
                                                    Grid.Row="3"
                                                    TextAlignment="Right" />
 
+                                        <TextBlock Text="Kill Ratio"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Grid.Row="4" />
+                                        <TextBlock Text="{Binding KillRatio, StringFormat={}{0:N2}}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="4"
+                                                   TextAlignment="Right" />
+
+                                        <TextBlock Text="Kills Remaining"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="0"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}"
+                                                   Grid.Row="5" />
+                                        <TextBlock Text="{Binding RemainingCount}"
+                                                   Margin="0,5,5,0"
+                                                   Grid.Column="1"
+                                                   Grid.Row="5"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}"
+                                                   TextAlignment="Right" />
+
                                         <TextBlock Text="Kills To Next&#x0a;Mission Completion"
                                                    Margin="0,5,10,0"
                                                    Grid.Column="0"
-                                                   Grid.Row="4" />
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}"
+                                                   Grid.Row="6" />
 
                                         <TextBlock Text="{Binding KillsToNextMissonCompletion}"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="1"
-                                                   Grid.Row="4"
-                                                   VerticalAlignment="Center"
-                                                   TextAlignment="Right" />
-
-                                        <TextBlock Text="Total Kills"
-                                                   Margin="0,5,5,0"
-                                                   Grid.Column="0"
-                                                   Grid.Row="5" />
-                                        <TextBlock Text="{Binding TotalKills}"
-                                                   Margin="0,5,5,0"
-                                                   Grid.Column="1"
-                                                   Grid.Row="5"
-                                                   TextAlignment="Right" />
-
-                                        <TextBlock Text="Kill Ratio"
-                                                   Margin="0,5,5,0"
-                                                   Grid.Column="0"
-                                                   Grid.Row="6" />
-                                        <TextBlock Text="{Binding KillRatio, StringFormat={}{0:N2}}"
-                                                   Margin="0,5,5,0"
-                                                   Grid.Column="1"
                                                    Grid.Row="6"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}"
+                                                   VerticalAlignment="Center"
                                                    TextAlignment="Right" />
                                     </Grid>
                                 </DataTemplate>
@@ -620,24 +733,28 @@
                                         <TextBlock Text="Current Turn In&#x0a;Value"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="0"
-                                                   Grid.Row="4" />
+                                                   Grid.Row="4"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}" />
                                         <TextBlock Text="{Binding TurnInValue, StringFormat={}{0:N0} cr}"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="1"
                                                    VerticalAlignment="Center"
                                                    Grid.Row="4"
-                                                   TextAlignment="Right" />
+                                                   TextAlignment="Right"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}" />
 
                                         <TextBlock Text="Shareable Turn&#x0a;In Value"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="0"
-                                                   Grid.Row="5" />
+                                                   Grid.Row="5"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}" />
                                         <TextBlock Text="{Binding ShareableTurnInValue, StringFormat={}{0:N0} cr}"
                                                    Margin="0,5,5,0"
                                                    Grid.Column="1"
                                                    VerticalAlignment="Center"
                                                    Grid.Row="5"
-                                                   TextAlignment="Right" />
+                                                   TextAlignment="Right"
+                                                   Visibility="{Binding ElementName=Root, Path=Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVisReversed}, ConverterParameter=Completed}" />
                                     </Grid>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -649,6 +766,7 @@
                 <!--#region Stack Info-->
                 <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.StackInformation}"
                           Grid.Column="2"
+                          VirtualizingPanel.ScrollUnit="Pixel"
                           x:Name="StackInfoGrid"
                           Loaded="StackInfoGrid_Loaded">
                     <DataGrid.RowStyle>
@@ -732,7 +850,14 @@
                         <DataGridTextColumn Header="REWARD"
                                             MinWidth="70"
                                             Width="SizeToCells"
-                                            Binding="{Binding Reward, StringFormat={}{0:N0} cr}" />
+                                            Binding="{Binding Reward, StringFormat={}{0:N0} cr}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                     </DataGrid.Columns>
                 </DataGrid>
                 <!--#endregion-->

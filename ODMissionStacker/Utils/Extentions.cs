@@ -47,6 +47,20 @@ namespace ODMissionStacker.Utils
                 _ = collection.Remove(objectToRemove);
             });
         }
+
+        public static void RemoveAtIndex<T>(this ObservableCollection<T> collection, int index)
+        {
+            if (collection.Count - 1 < index || index < 0)
+            {
+                return;
+            }
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                collection.RemoveAt(index);
+            });
+        }
+
         public static void ClearCollection<T>(this ObservableCollection<T> collection)
         {
             if (!collection.Any())
