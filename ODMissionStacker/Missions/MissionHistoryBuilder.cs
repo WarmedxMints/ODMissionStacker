@@ -169,6 +169,23 @@ namespace ODMissionStacker.Missions
             missionData.Reward = 0;
         }
 
+        private void OnMissionFailed(object sender, MissionFailedEvent.MissionFailedEventArgs e)
+        {
+            if (handleLogs == false)
+            {
+                return;
+            }
+
+            if (odyssey ? (odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID)) : (horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID)))
+            {
+                return;
+            }
+
+            MissionData missionData = odyssey ? odysseyMissionsData[e.MissionID] : horizonMissionsData[e.MissionID];
+            missionData.CurrentState = MissionState.Failed;
+            missionData.Reward = 0;
+        }
+
         private void OnBoutnyEvent(object sender, BountyEvent.BountyEventArgs e)
         {
             if (handleLogs == false)
@@ -257,6 +274,8 @@ namespace ODMissionStacker.Missions
 
             watcher.GetEvent<MissionAbandonedEvent>()?.AddHandler(OnMissionAbandonded);
 
+            watcher.GetEvent<MissionFailedEvent>()?.AddHandler(OnMissionFailed);
+
             watcher.GetEvent<BountyEvent>()?.AddHandler(OnBoutnyEvent);
         }
 
@@ -279,6 +298,8 @@ namespace ODMissionStacker.Missions
             watcher.GetEvent<MissionCompletedEvent>()?.RemoveHandler(OnMissionCompleted);
 
             watcher.GetEvent<MissionAbandonedEvent>()?.RemoveHandler(OnMissionAbandonded);
+
+            watcher.GetEvent<MissionFailedEvent>()?.RemoveHandler(OnMissionFailed);
 
             watcher.GetEvent<BountyEvent>()?.RemoveHandler(OnBoutnyEvent);
         }

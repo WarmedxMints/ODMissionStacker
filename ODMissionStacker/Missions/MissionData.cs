@@ -15,7 +15,8 @@ namespace ODMissionStacker.Missions
         Redirectied,
         Complete,
         Abandonded,
-        ReadyToTurnIn
+        ReadyToTurnIn,
+        Failed
     }
 
     public class MissionData : PropertyChangeNotify

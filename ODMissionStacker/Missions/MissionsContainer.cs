@@ -88,6 +88,8 @@ namespace ODMissionStacker.Missions
 
             JournalWatcher.GetEvent<MissionAbandonedEvent>()?.AddHandler(OnMissionAbandonded);
 
+            JournalWatcher.GetEvent<MissionFailedEvent>()?.AddHandler(OnMissionFailed);
+
             JournalWatcher.GetEvent<BountyEvent>()?.AddHandler(OnBoutnyEvent);
 
             JournalWatcher.GetEvent<CommanderEvent>()?.AddHandler(OnCommanderEvent);
@@ -239,6 +241,40 @@ namespace ODMissionStacker.Missions
 
             missionData.CurrentState = MissionState.Complete;
             missionData.Reward = e.Reward;
+
+            CompletedMissions.Missions.AddToCollection(missionData);
+            SaveData();
+        }
+
+        private void OnMissionFailed(object sender, MissionFailedEvent.MissionFailedEventArgs e)
+        {
+            if (JournalWatcher.IsLive == false)
+            {
+                return;
+
+            }
+            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            {
+                return;
+            }
+
+            MissionData missionData;
+
+            if (odyssey)
+            {
+                missionData = odysseyMissionsData[e.MissionID];
+
+                OdysseyMissions.Missions.RemoveFromCollection(missionData);
+            }
+            else
+            {
+                missionData = horizonMissionsData[e.MissionID];
+
+                HorizionMissions.Missions.RemoveFromCollection(missionData);
+            }
+
+            missionData.CurrentState = MissionState.Failed;
+            missionData.Reward = 0;
 
             CompletedMissions.Missions.AddToCollection(missionData);
             SaveData();
@@ -617,7 +653,7 @@ namespace ODMissionStacker.Missions
                 {
                     mission.Value.SetContainer(this);
 
-                    if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded)
+                    if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded or MissionState.Failed)
                     {
 
                         CompletedMissions.Missions.AddToCollection(mission.Value);
@@ -636,7 +672,7 @@ namespace ODMissionStacker.Missions
                 {
                     mission.Value.SetContainer(this);
 
-                    if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded)
+                    if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded or MissionState.Failed)
                     {
                         CompletedMissions.Missions.AddToCollection(mission.Value);
                         continue;

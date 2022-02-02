@@ -187,6 +187,10 @@
                             Content=" Purge Abandonded "
                             Click="PurgeAbandonded_Click"
                             Margin="10,0" />
+                    <Button x:Name="PurgeFailed"
+                            Content=" Purge Failed "
+                            Click="PurgeFailed_Click"
+                            Margin="0,0,10,0" />
                     <Button x:Name="ReadHistory"
                             Content=" Read History "
                             Click="ReadHistory_Click" />

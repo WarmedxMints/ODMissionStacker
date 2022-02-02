@@ -365,6 +365,16 @@ namespace ODMissionStacker
             }
         }
 
+        private void PurgeFailed_Click(object sender, RoutedEventArgs e)
+        {
+            var del = ODMessageBox.Show(this, "Purge All Failed Missions?", MessageBoxButton.YesNo);
+
+            if (del == MessageBoxResult.Yes)
+            {
+                MissionsContainer.PurgeMissions(MissionState.Failed);
+            }
+        }
+
         private void ReadHistory_Click(object sender, RoutedEventArgs e)
         {
             MissionHistoryReaderView ret = new(MissionsContainer)

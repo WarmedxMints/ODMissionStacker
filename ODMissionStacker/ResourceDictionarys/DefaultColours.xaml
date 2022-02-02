@@ -10,7 +10,9 @@
     <SolidColorBrush x:Key="Completed"
                      Color="#FF1CEA12" />
     <SolidColorBrush x:Key="Abandonded"
-                     Color="#FFE02A0E" />
+                     Color="#FFEE4E35" />
+    <SolidColorBrush x:Key="Failed"
+                     Color="#FFEE2000" />
     <SolidColorBrush x:Key="GridLineColour"
                      Color="#FFE0AD00" />
     <SolidColorBrush x:Key="MouseClick"
