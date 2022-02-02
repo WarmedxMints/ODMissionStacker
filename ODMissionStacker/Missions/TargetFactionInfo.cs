@@ -56,7 +56,7 @@ namespace ODMissionStacker.Missions
 
             foreach (MissionData data in missions)
             {
-                if (string.Equals(data.TargetFaction, TargetFaction, StringComparison.OrdinalIgnoreCase) == false || data.CurrentState == MissionState.Abandonded)
+                if (string.Equals(data.TargetFaction, TargetFaction, StringComparison.OrdinalIgnoreCase) == false || data.CurrentState is MissionState.Abandonded or MissionState.Failed)
                 {
                     continue;
                 }

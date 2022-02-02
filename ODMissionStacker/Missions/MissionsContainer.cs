@@ -389,8 +389,8 @@ namespace ODMissionStacker.Missions
 
         public void ProcessHistory(Dictionary<long, MissionData> horizonDictionary, Dictionary<long, MissionData> odysseyDisctionary, List<BountyData> bountiesData, IProgress<string> progress)
         {
-            horizonMissionsData = new();
-            odysseyMissionsData = new();
+            horizonMissionsData = new(horizonDictionary);
+            odysseyMissionsData = new(odysseyDisctionary);
 
             HorizionMissions.Missions.ClearCollection();
             OdysseyMissions.Missions.ClearCollection();
@@ -400,51 +400,15 @@ namespace ODMissionStacker.Missions
             //Horizons Data
             if (!(horizonDictionary is null && horizonDictionary.Count <= 0))
             {
-                foreach (KeyValuePair<long, MissionData> key in horizonDictionary)
-                {
-                    progress.Report($"{key.Key}");
+                progress.Report("Horizon Missions");
 
-                    key.Value.SetContainer(this);
-                    if (horizonMissionsData.ContainsKey(key.Key) == false)
-                    {
-                        AddMissionToDictionary(ref horizonMissionsData, key.Value);
-                    }
-
-                    switch (key.Value.CurrentState)
-                    {
-                        case MissionState.Active:
-                        case MissionState.Redirectied:
-                            AddMissionToGui(horizonMissions.Missions, key.Value);
-                            break;
-                        default:
-                            CompletedMissions.Missions.AddToCollection(key.Value);
-                            break;
-                    }
-                }
+                ProcessDictionary(horizonMissionsData, HorizionMissions);
             }
             if (!(odysseyDisctionary is null && odysseyDisctionary.Count <= 0))
             {
-                foreach (KeyValuePair<long, MissionData> key in odysseyDisctionary)
-                {
-                    progress.Report($"{key.Key}");
-                    key.Value.SetContainer(this);
+                progress.Report("Odyssey Missions");
 
-                    if (odysseyMissionsData.ContainsKey(key.Key) == false)
-                    {
-                        AddMissionToDictionary(ref odysseyMissionsData, key.Value);
-                    }
-
-                    switch (key.Value.CurrentState)
-                    {
-                        case MissionState.Active:
-                        case MissionState.Redirectied:
-                            AddMissionToGui(odysseyMissions.Missions, key.Value);
-                            break;
-                        default:
-                            CompletedMissions.Missions.AddToCollection(key.Value);
-                            break;
-                    }
-                }
+                ProcessDictionary(odysseyMissionsData, OdysseyMissions);
             }
 
             if (bountiesData.Count > 0)
@@ -632,78 +596,20 @@ namespace ODMissionStacker.Missions
             missionDictionary.Add(missionData.MissionID, missionData);
         }
 
-        public void LoadData()
+        private void ProcessDictionary(Dictionary<long, MissionData> missionData, MissionsManager missionManager)
         {
-            if (appSettings == null || appSettings.CurrentCommander == null)
+            foreach (KeyValuePair<long, MissionData> mission in missionData)
             {
-                return;
-            }
+                mission.Value.SetContainer(this);
 
-            CompletedMissions.Missions.ClearCollection();
-            HorizionMissions.Missions.ClearCollection();
-            OdysseyMissions.Missions.ClearCollection();
-            Bounties.ClearCollection();
-
-            horizonMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(HorizonDataSaveFile);
-
-            if (horizonMissionsData is not null)
-            {
-
-                foreach (KeyValuePair<long, MissionData> mission in horizonMissionsData)
+                if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded or MissionState.Failed)
                 {
-                    mission.Value.SetContainer(this);
 
-                    if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded or MissionState.Failed)
-                    {
-
-                        CompletedMissions.Missions.AddToCollection(mission.Value);
-                        continue;
-                    }
-
-                    AddMissionToGui(HorizionMissions.Missions, mission.Value);
+                    CompletedMissions.Missions.AddToCollection(mission.Value);
+                    continue;
                 }
-            }
 
-            odysseyMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(OdysseyDataSaveFile);
-
-            if (odysseyMissionsData is not null)
-            {
-                foreach (KeyValuePair<long, MissionData> mission in odysseyMissionsData)
-                {
-                    mission.Value.SetContainer(this);
-
-                    if (mission.Value.CurrentState is MissionState.Complete or MissionState.Abandonded or MissionState.Failed)
-                    {
-                        CompletedMissions.Missions.AddToCollection(mission.Value);
-                        continue;
-                    }
-
-                    AddMissionToGui(OdysseyMissions.Missions, mission.Value);
-                }
-            }
-
-            ObservableCollection<MissionSourceClipboardData> missionSourceClipboards = LoadSaveJson.LoadJson<ObservableCollection<MissionSourceClipboardData>>(clipboarDataSaveFile);
-
-            if (missionSourceClipboards is not null)
-            {
-                foreach (MissionSourceClipboardData clipboard in missionSourceClipboards)
-                {
-                    if (MissionSourceClipboards.Contains(clipboard) == false)
-                    {
-                        MissionSourceClipboards.AddToCollection(clipboard);
-                        clipboard.SetContainer(this);
-                    }
-                }
-            }
-
-            ObservableCollection<BountyData> bountiesData = LoadSaveJson.LoadJson<ObservableCollection<BountyData>>(BountyDataSaveFile);
-
-            if (bountiesData is not null)
-            {
-                foreach (BountyData data in bountiesData)
-                {
-                    AddBounty(data);
-                }
+                AddMissionToGui(missionManager.Missions, mission.Value);
             }
         }
 
@@ -772,6 +678,57 @@ namespace ODMissionStacker.Missions
         public void UpdateValues()
         {
             CurrentManager?.UpdateValues();
+        }
+
+        public void LoadData()
+        {
+            if (appSettings == null || appSettings.CurrentCommander == null)
+            {
+                return;
+            }
+
+            CompletedMissions.Missions.ClearCollection();
+            HorizionMissions.Missions.ClearCollection();
+            OdysseyMissions.Missions.ClearCollection();
+            Bounties.ClearCollection();
+
+            horizonMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(HorizonDataSaveFile);
+
+            if (horizonMissionsData is not null)
+            {
+                ProcessDictionary(horizonMissionsData, HorizionMissions);
+            }
+
+            odysseyMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(OdysseyDataSaveFile);
+
+            if (odysseyMissionsData is not null)
+            {
+                ProcessDictionary(odysseyMissionsData, OdysseyMissions);
+            }
+
+            ObservableCollection<MissionSourceClipboardData> missionSourceClipboards = LoadSaveJson.LoadJson<ObservableCollection<MissionSourceClipboardData>>(clipboarDataSaveFile);
+
+            if (missionSourceClipboards is not null)
+            {
+                foreach (MissionSourceClipboardData clipboard in missionSourceClipboards)
+                {
+                    if (MissionSourceClipboards.Contains(clipboard) == false)
+                    {
+                        MissionSourceClipboards.AddToCollection(clipboard);
+                        clipboard.SetContainer(this);
+                    }
+                }
+            }
+
+            ObservableCollection<BountyData> bountiesData = LoadSaveJson.LoadJson<ObservableCollection<BountyData>>(BountyDataSaveFile);
+
+            if (bountiesData is not null)
+            {
+                foreach (BountyData data in bountiesData)
+                {
+                    AddBounty(data);
+                }
+            }
         }
 
         public void SaveData()

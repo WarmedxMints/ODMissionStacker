@@ -107,7 +107,7 @@ namespace ODMissionStacker.Missions
                         Header = "Mark as Active"
                     };
 
-                    item.Click += MarkAsActive;
+                    item.Click += (sender, e) => MarkMission(MissionState.Active, true);
                     _ = menu.Items.Add(item);
                 }
 
@@ -115,9 +115,9 @@ namespace ODMissionStacker.Missions
                 {
                     item = new()
                     {
-                        Header = "Mark as Completed"
+                        Header = "Mark as Complete"
                     };
-                    item.Click += MarkAsCompleted;
+                    item.Click += (sender, e) => MarkMission(MissionState.Complete, false);
                     _ = menu.Items.Add(item);
                 }
 
@@ -127,7 +127,17 @@ namespace ODMissionStacker.Missions
                     {
                         Header = "Mark as Abandonded"
                     };
-                    item.Click += MarkAsAbandonded;
+                    item.Click += (sender, e) => MarkMission(MissionState.Abandonded, false);
+                    _ = menu.Items.Add(item);
+                }
+
+                if (currentState != MissionState.Failed)
+                {
+                    item = new()
+                    {
+                        Header = "Mark as Failed"
+                    };
+                    item.Click += (sender, e) => MarkMission(MissionState.Failed, false);
                     _ = menu.Items.Add(item);
                 }
 
@@ -143,6 +153,20 @@ namespace ODMissionStacker.Missions
             }
         }
 
+        private void MarkMission(MissionState state, bool moveToActive)
+        {
+            MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
+                                         $"Mark Mission from {IssuingFaction} at {SourceStation} for {KillCount} kills as {state}?",
+                                         MessageBoxButton.YesNo);
+
+            if (ret == MessageBoxResult.Yes)
+            {
+                CurrentState = state;
+                container?.MoveMission(this, moveToActive);
+                OnPropertyChanged("ContextMenu");
+            };
+        }
+
         private void DeleteMission(object sender, RoutedEventArgs e)
         {
             MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
@@ -152,49 +176,6 @@ namespace ODMissionStacker.Missions
             if (ret == MessageBoxResult.Yes)
             {
                 container?.DeleteMission(this);
-            }
-        }
-
-        private void MarkAsActive(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Mark Mission from {IssuingFaction} at {SourceStation} for {KillCount} kills as Active?",
-                                                     MessageBoxButton.YesNo);
-
-            if (ret == MessageBoxResult.Yes)
-            {
-                CurrentState = MissionState.Active;
-                container?.MoveMission(this, true);
-                OnPropertyChanged("ContextMenu");
-            }
-        }
-
-        private void MarkAsAbandonded(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Mark Mission from {IssuingFaction} at {SourceStation} for {KillCount} kills as Abandonded?",
-                                                     MessageBoxButton.YesNo);
-
-            if (ret == MessageBoxResult.Yes)
-            {
-                CurrentState = MissionState.Abandonded;
-                container?.MoveMission(this, false);
-                OnPropertyChanged("ContextMenu");
-            }
-        }
-
-        private void MarkAsCompleted(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult ret = ODMessageBox.Show(Application.Current.Windows.OfType<MainWindow>().First(),
-                                                     $"Mark Mission {IssuingFaction} at {SourceStation} for {KillCount} kills as Completed?",
-                                                     MessageBoxButton.YesNo);
-
-            if (ret == MessageBoxResult.Yes)
-            {
-                CurrentState = MissionState.Complete;
-                Kills = KillCount;
-                container?.MoveMission(this, false);
-                OnPropertyChanged("ContextMenu");
             }
         }
 
