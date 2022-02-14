@@ -1,4 +1,5 @@
 ﻿using ODMissionStacker.Utils;
+using System.Collections.Generic;
 
 namespace ODMissionStacker.Missions
 {
@@ -17,5 +18,6 @@ namespace ODMissionStacker.Missions
         public int KillCount { get => killCount; set { killCount = value; OnPropertyChanged(); } }
         public int Difference { get => difference; set { difference = value; OnPropertyChanged(); } }
         public int MissionCount { get => missionCount; set { missionCount = value; OnPropertyChanged(); } }
+        public List<MissionData> Missions { get; set; }
     }
 }

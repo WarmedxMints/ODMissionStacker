@@ -15,7 +15,6 @@ namespace ODMissionStacker.Missions
         Redirectied,
         Complete,
         Abandonded,
-        ReadyToTurnIn,
         Failed
     }
 
@@ -46,7 +45,7 @@ namespace ODMissionStacker.Missions
         private int kills;
         private MissionState currentState;
         private DateTime expireTime;
-        private bool highlight;
+        private bool highlight, readyToTurnIn;
 
         public string SourceSystem { get; set; }
         public long SystemAddress { get; set; }
@@ -65,19 +64,8 @@ namespace ODMissionStacker.Missions
             {
                 kills = Math.Clamp(value, 0, KillCount);
 
-                if (currentState is MissionState.Active or MissionState.Redirectied)
-                {
-                    CurrentState = kills >= KillCount ? MissionState.Redirectied : MissionState.Active;
-                }
-
                 OnPropertyChanged();
             }
-        }
-
-        public int KillsWithoutStateChange
-        {
-            get => kills;
-            set { kills = Math.Clamp(value, 0, KillCount); OnPropertyChanged("Kills"); }
         }
 
         public bool Wing { get; set; }
@@ -85,6 +73,7 @@ namespace ODMissionStacker.Missions
         public DateTime CollectionTime { get; set; }
         public DateTime ExpireTime { get => expireTime; set { expireTime = value; } }
         public bool Highlight { get => highlight; set { highlight = value; OnPropertyChanged(); } }
+        public bool ReadyToTurnIn { get => readyToTurnIn; set { readyToTurnIn = value; OnPropertyChanged(); } }
 
         [IgnoreDataMember]
         public ContextMenu ContextMenu
@@ -192,5 +181,21 @@ namespace ODMissionStacker.Missions
         }
 
         public void SetContainer(MissionsContainer container) => this.container = container;
+
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+            {
+                return false;
+            }
+
+            return obj is MissionData missionData && missionData.MissionID == MissionID;
+        }
+
+        public override int GetHashCode()
+        {
+            return MissionID.GetHashCode();
+        }
     }
 }

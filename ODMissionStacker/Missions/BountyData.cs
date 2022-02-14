@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Globalization;
 using EliteJournalReader.Events;
+using ODMissionStacker.Utils;
 
 namespace ODMissionStacker.Missions
 {
@@ -10,12 +10,7 @@ namespace ODMissionStacker.Missions
         public BountyData(BountyEvent.BountyEventArgs args)
         {
             TimeStamp = args.Timestamp;
-
-            args.Target = args.Target.Replace('_', ' ').ToLowerInvariant();
-
-            TextInfo textInfo = new CultureInfo("en-GB", false).TextInfo;
-
-            Target = textInfo.ToTitleCase(args.Target);
+            Target = FdevNameLookup.GetShipName(args.Target);
             VictimFaction = args.VictimFaction;
             TotalReward = args.TotalReward;
         }

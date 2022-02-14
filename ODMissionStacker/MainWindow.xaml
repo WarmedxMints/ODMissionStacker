@@ -9,8 +9,9 @@
         xmlns:utils="clr-namespace:ODMissionStacker.Utils"
         mc:Ignorable="d"
         FontSize="16"
-        Title="OD MASSACRE STACK MANAGER v1.3"
+        Title="OD MASSACRE STACK MANAGER v1.4"
         Loaded="Window_Loaded"
+        ContentRendered="Root_ContentRendered"
         Closing="Root_Closing"
         Background="{DynamicResource Background}"
         Foreground="{DynamicResource Foreground}"
@@ -37,6 +38,7 @@
 
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <utils:DisplyModeToVisibilty x:Key="DisplayModeToVis" />
+        <utils:BoolToRowAlternation x:Key="BoolToRowAlternation" />
         <utils:DisplyModeToVisibiltyReversed x:Key="DisplayModeToVisReversed" />
         <ObjectDataProvider x:Key="DisplayModeEnum"
                             MethodName="GetValues"
@@ -173,28 +175,6 @@
                               SelectionChanged="SortingModeSelector_SelectionChanged" />
                 </StackPanel>
 
-
-                <StackPanel Orientation="Horizontal"
-                            Grid.Column="3"
-                            VerticalAlignment="Top"
-                            Height="30"
-                            Margin="10,0"
-                            Visibility="{Binding Settings.ViewDisplayMode, Converter={StaticResource DisplayModeToVis}, ConverterParameter=Completed}">
-                    <Button x:Name="PurgeCompleted"
-                            Content=" Purge Completed "
-                            Click="PurgeCompleted_Click" />
-                    <Button x:Name="PurgeAbandonded"
-                            Content=" Purge Abandonded "
-                            Click="PurgeAbandonded_Click"
-                            Margin="10,0" />
-                    <Button x:Name="PurgeFailed"
-                            Content=" Purge Failed "
-                            Click="PurgeFailed_Click"
-                            Margin="0,0,10,0" />
-                    <Button x:Name="ReadHistory"
-                            Content=" Read History "
-                            Click="ReadHistory_Click" />
-                </StackPanel>
                 <StackPanel Orientation="Horizontal"
                             Grid.Column="5"
                             Height="30"
@@ -205,6 +185,12 @@
                               SelectedItem="{Binding Settings.CurrentCommander}"
                               VerticalAlignment="Center"
                               MinWidth="150" />
+                    <Button x:Name="Setting"
+                            Margin="10,0,0,0"
+                            FontSize="22"
+                            FontFamily="Segoe MDL2 Assets"
+                            Content="&#xE713;"
+                            Click="Setting_Click" />
                 </StackPanel>
             </Grid>
             <!--#endregion-->
@@ -236,6 +222,7 @@
                           Grid.Column="2"
                           IsHitTestVisible="True"
                           HorizontalAlignment="Left"
+                          AlternationCount="{Binding Settings.AlternateRowColours, Converter={StaticResource BoolToRowAlternation}}"
                           Loaded="MissionDataGrid_Loaded"
                           CellStyle="{DynamicResource MissionsGridCell}">
                     <DataGrid.RowStyle>
@@ -244,8 +231,6 @@
                                     Value="0" />
                             <Setter Property="IsHitTestVisible"
                                     Value="True" />
-                            <Setter Property="Background"
-                                    Value="{DynamicResource Background}" />
                             <Setter Property="BorderBrush"
                                     Value="{x:Null}" />
                             <Setter Property="FocusVisualStyle"
@@ -259,6 +244,16 @@
                             <EventSetter Event="MouseLeave"
                                          Handler="MissionsDateGridRow_MouseLeave" />
                             <Style.Triggers>
+                                <Trigger Property="ItemsControl.AlternationIndex"
+                                         Value="0">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource Background}" />
+                                </Trigger>
+                                <Trigger Property="ItemsControl.AlternationIndex"
+                                         Value="1">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource AltBackground}" />
+                                </Trigger>
                                 <Trigger Property="IsMouseOver"
                                          Value="True">
                                     <Setter Property="Background"
@@ -433,7 +428,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="BOUTNY FEED"
+                    <TextBlock Text="BOUNTY FEED"
                                Grid.Column="1" />
 
                     <DataGrid Grid.Row="2"
@@ -445,7 +440,7 @@
                               ItemsSource="{Binding MissionsContainer.Bounties}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="TARGET"
-                                                Width="155"
+                                                Width="170"
                                                 HeaderStyle="{DynamicResource HeaderLeft}"
                                                 Binding="{Binding Target}" />
                             <DataGridTextColumn Header="TARGET FACTION"
@@ -557,7 +552,7 @@
                   Grid.Row="5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="40" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <!--#region Target Factions info-->
@@ -771,6 +766,7 @@
                 <DataGrid ItemsSource="{Binding MissionsContainer.CurrentManager.StackInformation}"
                           Grid.Column="2"
                           VirtualizingPanel.ScrollUnit="Pixel"
+                          AlternationCount="{Binding Settings.AlternateRowColours, Converter={StaticResource BoolToRowAlternation}}"
                           x:Name="StackInfoGrid"
                           Loaded="StackInfoGrid_Loaded">
                     <DataGrid.RowStyle>
@@ -779,8 +775,6 @@
                                     Value="0" />
                             <Setter Property="IsHitTestVisible"
                                     Value="True" />
-                            <Setter Property="Background"
-                                    Value="{DynamicResource Background}" />
                             <Setter Property="BorderBrush"
                                     Value="{x:Null}" />
                             <Setter Property="FocusVisualStyle"
@@ -790,6 +784,16 @@
                             <EventSetter Event="MouseLeave"
                                          Handler="StackInfoGrid_MouseLeave" />
                             <Style.Triggers>
+                                <Trigger Property="ItemsControl.AlternationIndex"
+                                         Value="0">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource Background}" />
+                                </Trigger>
+                                <Trigger Property="ItemsControl.AlternationIndex"
+                                         Value="1">
+                                    <Setter Property="Background"
+                                            Value="{DynamicResource AltBackground}" />
+                                </Trigger>
                                 <Trigger Property="IsMouseOver"
                                          Value="True">
                                     <Setter Property="Background"

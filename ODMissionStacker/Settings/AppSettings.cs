@@ -12,16 +12,23 @@ namespace ODMissionStacker.Settings
         public event EventHandler CommanderChanged;
 
         private readonly string settingsSaveFile = Path.Combine(Directory.GetCurrentDirectory(), "Data", "AppSettings.json");
+        private static readonly string defaultJournalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                                                                         "Saved Games",
+                                                                         "Frontier Developments",
+                                                                         "Elite Dangerous");
 
         private DisplayMode viewDisplayMode;
         private GridSorting mainGridSorting;
         private WindowPos lastWindowPos = new();
-
+        private string customJournalPath;
+        private bool alternateRowColours = true;
         public DisplayMode ViewDisplayMode { get => viewDisplayMode; set { viewDisplayMode = value; OnPropertyChanged(); } }
         public GridSorting MainGridSorting { get => mainGridSorting; set { mainGridSorting = value; OnPropertyChanged(); } }
         public bool ShowClipBoard { get; set; }
         public bool ShowBountyBoard { get; set; }
+        public bool AlternateRowColours { get => alternateRowColours; set { alternateRowColours = value; OnPropertyChanged(); } }
         public WindowPos LastWindowPos { get => lastWindowPos; set { lastWindowPos = value; OnPropertyChanged(); } }
+        public string CustomJournalPath { get => customJournalPath; set { customJournalPath = value; OnPropertyChanged(); } }
 
         private Commander currentCommander;
         [IgnoreDataMember]
@@ -40,6 +47,19 @@ namespace ODMissionStacker.Settings
             }
         }
 
+        [IgnoreDataMember]
+        public string JournalPath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(CustomJournalPath))
+                {
+                    return defaultJournalPath;
+                }
+                return CustomJournalPath;
+            }
+        }
+
         public ObservableCollection<Commander> Commanders { get; set; } = new();
 
         public void LoadSettings()
@@ -52,6 +72,8 @@ namespace ODMissionStacker.Settings
                 MainGridSorting = settings.MainGridSorting;
                 ShowClipBoard = settings.ShowClipBoard;
                 ShowBountyBoard = settings.ShowBountyBoard;
+                CustomJournalPath = settings.CustomJournalPath;
+                AlternateRowColours = settings.alternateRowColours;
 
                 if (settings.Commanders.Count > 0)
                 {
@@ -92,9 +114,8 @@ namespace ODMissionStacker.Settings
             {
                 LastWindowPos.Width = SystemParameters.VirtualScreenWidth;
             }
-
-
         }
+
         public void SaveSettings()
         {
             _ = LoadSaveJson.SaveJson(this, settingsSaveFile);

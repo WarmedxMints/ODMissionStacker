@@ -1,4 +1,4 @@
-﻿using ODMissionStacker.CustomMessageBox;
+﻿using ODMissionStacker.CustomControls;
 using ODMissionStacker.Missions;
 using ODMissionStacker.Settings;
 using ODMissionStacker.Utils;
@@ -117,8 +117,12 @@ namespace ODMissionStacker
         {
             ShowSiderBar(Settings.ShowClipBoard, "\xE974", "\xE973", ClipboardColumn, ClipboardExpander);
             ShowSiderBar(Settings.ShowBountyBoard, "\xE973", "\xE974", BountyColumn, BountyBoardExapander);
-            MissionsContainer.Init();
             WindowState = Settings.LastWindowPos.State;
+        }
+
+        private void Root_ContentRendered(object sender, EventArgs e)
+        {
+            MissionsContainer.Init();
         }
 
         private void Root_Closing(object sender, CancelEventArgs e)
@@ -311,8 +315,10 @@ namespace ODMissionStacker
         #region Button Methods
         private void KillCountBox_Click(object sender, RoutedEventArgs e)
         {
-            MissionsContainer.CurrentManager.UpdateFactionInfo();
-
+            if (sender is KillCountBox countBox)
+            {
+                MissionsContainer.CurrentManager.UpdateKillsFromUI((MissionData)countBox.DataContext);
+            }
             MissionDataGrid.UnselectAllCells();
         }
 
@@ -342,49 +348,6 @@ namespace ODMissionStacker
                 };
 
                 MissionsContainer.AddToMissionSourceClipBoard(data);
-            }
-        }
-
-        private void PurgeCompleted_Click(object sender, RoutedEventArgs e)
-        {
-            var del = ODMessageBox.Show(this, "Purge All Completed Missions?", MessageBoxButton.YesNo);
-
-            if (del == MessageBoxResult.Yes)
-            {
-                MissionsContainer.PurgeMissions(MissionState.Complete);
-            }
-        }
-
-        private void PurgeAbandonded_Click(object sender, RoutedEventArgs e)
-        {
-            var del = ODMessageBox.Show(this, "Purge All Abandonded Missions?", MessageBoxButton.YesNo);
-
-            if (del == MessageBoxResult.Yes)
-            {
-                MissionsContainer.PurgeMissions(MissionState.Abandonded);
-            }
-        }
-
-        private void PurgeFailed_Click(object sender, RoutedEventArgs e)
-        {
-            var del = ODMessageBox.Show(this, "Purge All Failed Missions?", MessageBoxButton.YesNo);
-
-            if (del == MessageBoxResult.Yes)
-            {
-                MissionsContainer.PurgeMissions(MissionState.Failed);
-            }
-        }
-
-        private void ReadHistory_Click(object sender, RoutedEventArgs e)
-        {
-            MissionHistoryReaderView ret = new(MissionsContainer)
-            {
-                Owner = this
-            };
-
-            if ((bool)ret.ShowDialog())
-            {
-                MissionsContainer.SaveData();
             }
         }
 
@@ -430,6 +393,13 @@ namespace ODMissionStacker
 
             button.Content = show ? showText : hideText;
         }
+
+        private void Setting_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsView settingsView = new(Settings, MissionsContainer);
+            settingsView.Owner = this;
+            settingsView.ShowDialog();
+        }
         #endregion
 
         #region DropDown Methods
@@ -456,7 +426,7 @@ namespace ODMissionStacker
                 return;
             }
 
-            string faction = ((MissionData)((DataGridRow)sender).DataContext).IssuingFaction;
+            MissionData mission = (MissionData)((DataGridRow)sender).DataContext;
             SolidColorBrush foreGround = Application.Current.FindResource("Foreground") as SolidColorBrush;
 
             for (int i = 0; i < StackInfoGrid.Items.Count; i++)
@@ -470,7 +440,7 @@ namespace ODMissionStacker
 
                 StackInfo stackinfo = (StackInfo)StackInfoGrid.Items[i];
 
-                if (stackinfo.IssuingFaction == faction)
+                if (stackinfo.IssuingFaction == mission.IssuingFaction && stackinfo.TargetFaction == mission.TargetFaction)
                 {
                     dgRow.Foreground = Application.Current.FindResource("Highlighted") as SolidColorBrush;
                     continue;
@@ -509,13 +479,13 @@ namespace ODMissionStacker
                 return;
             }
 
-            string faction = ((StackInfo)((DataGridRow)sender).DataContext).IssuingFaction;
+            var stack = (StackInfo)((DataGridRow)sender).DataContext;
 
             for (int i = 0; i < MissionDataGrid.Items.Count; i++)
             {
                 MissionData missionData = (MissionData)MissionDataGrid.Items[i];
 
-                missionData.Highlight = missionData.IssuingFaction == faction;
+                missionData.Highlight = missionData.IssuingFaction == stack.IssuingFaction && stack.TargetFaction == missionData.TargetFaction;
             }
         }
 
@@ -534,5 +504,6 @@ namespace ODMissionStacker
             }
         }
         #endregion
+
     }
 }

@@ -193,8 +193,8 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            //Ignore skimmers and zero value bounties.
-            if (e.VictimFaction.Contains("faction_none") || e.TotalReward <= 0)
+            //Ignore skimmers, ground and zero value bounties.
+            if (e.VictimFaction.Contains("faction_none") || e.VictimFaction.Contains("faction_Pirate") || e.TotalReward <= 0)
             {
                 return;
             }
@@ -212,9 +212,13 @@ namespace ODMissionStacker.Missions
             {
                 StackInfo faction = stackInformation[i];
 
+                if(faction.TargetFaction != e.VictimFaction)
+                {
+                    continue;
+                }
 
                 MissionData mission = dict.FirstOrDefault(x => x.Value.IssuingFaction == faction.IssuingFaction &&
-                                                           x.Value.TargetFaction == e.VictimFaction
+                                                           x.Value.TargetFaction == e.VictimFaction 
                                                             && x.Value.CurrentState == MissionState.Active).Value;
 
                 if (mission == default)
@@ -222,7 +226,7 @@ namespace ODMissionStacker.Missions
                     continue;
                 }
 
-                mission.KillsWithoutStateChange++;
+                mission.Kills++;
             }
         }
 

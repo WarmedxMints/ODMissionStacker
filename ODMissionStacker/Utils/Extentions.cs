@@ -75,6 +75,12 @@ namespace ODMissionStacker.Utils
             });
         }
 
+        public static T Clone<T>(this T source)
+        {
+            string serialized = JsonConvert.SerializeObject(source);
+            return JsonConvert.DeserializeObject<T>(serialized);
+        }
+
         public static string TryAddKeyboardAccellerator(this string input)
         {
             const string accellerator = "_";            // This is the default WPF accellerator symbol - used to be & in WinForms

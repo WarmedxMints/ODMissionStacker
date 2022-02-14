@@ -3,6 +3,8 @@
 
     <SolidColorBrush x:Key="Background"
                      Color="#FF171717" />
+    <SolidColorBrush x:Key="AltBackground"
+                     Color="#FF232323" />
     <SolidColorBrush x:Key="Foreground"
                      Color="#FFCB8300" />
     <SolidColorBrush x:Key="Redirected"

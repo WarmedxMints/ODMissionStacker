@@ -8,16 +8,6 @@ namespace ODMissionStacker.Missions
 {
     public class MissionsManager : PropertyChangeNotify
     {
-        public MissionsManager()
-        {
-            Missions.CollectionChanged += Missions_CollectionChanged;
-        }
-
-        private void Missions_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            UpdateValues();
-        }
-
         private ObservableCollection<MissionData> missions = new();
         public ObservableCollection<MissionData> Missions { get => missions; set { missions = value; OnPropertyChanged(); } }
 
@@ -27,118 +17,453 @@ namespace ODMissionStacker.Missions
         private ObservableCollection<TargetFactionInfo> targetFactionInfo = new();
         public ObservableCollection<TargetFactionInfo> TargetFactionInfo { get => targetFactionInfo; set { targetFactionInfo = value; OnPropertyChanged(); } }
 
-        private long stackValue;
-        public long StackValue { get => stackValue; set { stackValue = value; OnPropertyChanged(); } }
-
-        public void UpdateValues()
+        public void AddMission(MissionData mission)
         {
-            StackValue = 0;
-            StackInformation.ClearCollection();
-            TargetFactionInfo.ClearCollection();
-
-            if (Missions == null || Missions.Count == 0)
+            if (Missions.Contains(mission))
             {
                 return;
             }
 
-            foreach (MissionData data in Missions)
+            Missions.AddToCollection(mission);
+
+            //Add To Stack
+            AddToStack(mission);
+
+            AddToTargetFactionInfo(mission);
+        }
+
+        public void MissionRedirected(MissionData mission)
+        {
+            if (Missions.Contains(mission) == false)
             {
-                if (data.CurrentState == MissionState.Abandonded)
+                return;
+            }
+
+            RemoveFromStack(mission);
+
+            UpdateFactionInfo(mission.TargetFaction);
+        }
+
+        public void RemoveMission(MissionData mission)
+        {
+            if (Missions.Contains(mission) == false)
+            {
+                return;
+            }
+
+            Missions.RemoveFromCollection(mission);
+
+            RemoveFromStack(mission);
+
+            RemoveFromTargetFactionInfo(mission);
+        }
+
+        public void UpdateKillsFromUI(MissionData mission)
+        {
+            if (Missions.Contains(mission) == false)
+            {
+                return;
+            }
+
+            MissionState currentState = mission.CurrentState;
+
+            mission.CurrentState = mission.Kills >= mission.KillCount ? MissionState.Redirectied : MissionState.Active;
+
+            UpdateFactionInfo(mission.TargetFaction);
+
+            if (currentState == mission.CurrentState)
+            {
+                return;
+            }
+
+            switch (mission.CurrentState)
+            {
+                case MissionState.Active:
+                    AddToStack(mission);
+                    break;
+                case MissionState.Redirectied:
+                    RemoveFromStack(mission);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public void AddMissions(List<MissionData> missions, bool keepCurrentMissions)
+        {
+            if (keepCurrentMissions)
+            {
+                missions.AddRange(Missions);
+            }
+
+            List<StackInfo> stackInformation = new();
+            List<TargetFactionInfo> targetFactionInfos = new();
+
+            foreach (var mission in missions)
+            {
+                if (mission.CurrentState is MissionState.Abandonded or MissionState.Failed)
                 {
                     continue;
                 }
-                //Stack Value
-                StackValue += data.Reward;
 
-                //Stack Information
-                StackInfo stackInfo = StackInformation.FirstOrDefault(x => string.Equals(x.IssuingFaction, data.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                                            string.Equals(x.TargetFaction, data.TargetFaction, StringComparison.OrdinalIgnoreCase));
-
-                if (stackInfo == default)
+                if (mission.CurrentState != MissionState.Redirectied)
                 {
-                    stackInfo = new()
-                    {
-                        IssuingFaction = data.IssuingFaction,
-                        TargetFaction = data.TargetFaction
-                    };
+                    StackInfo stackInfo = stackInformation.FirstOrDefault(x => string.Equals(x.IssuingFaction, mission.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                                        string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
 
-                    StackInformation.AddToCollection(stackInfo);
+                    if (stackInfo == default)
+                    {
+                        stackInfo = new()
+                        {
+                            IssuingFaction = mission.IssuingFaction,
+                            TargetFaction = mission.TargetFaction,
+                            Missions = new()
+                        };
+
+                        stackInformation.Add(stackInfo);
+                    }
+
+                    if (stackInfo.Missions.Contains(mission) == false)
+                    {
+                        stackInfo.Missions.Add(mission);
+                        stackInfo.Reward += mission.Reward;
+                        stackInfo.KillCount += mission.KillCount;
+                        stackInfo.MissionCount++;
+                    }
                 }
 
-                stackInfo.Reward += data.Reward;
-                stackInfo.KillCount += data.KillCount;
-                stackInfo.MissionCount++;
-
-                TargetFactionInfo targetFactionInfo = TargetFactionInfo.FirstOrDefault(x => string.Equals(x.TargetFaction, data.TargetFaction, StringComparison.OrdinalIgnoreCase));
+                TargetFactionInfo targetFactionInfo = targetFactionInfos.FirstOrDefault(x => string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
 
                 if (targetFactionInfo == default)
                 {
                     targetFactionInfo = new()
                     {
-                        TargetFaction = data.TargetFaction,
-                        KillCount = 1
+                        TargetFaction = mission.TargetFaction,
+                        KillCount = 1,
+                        Missions = new()
                     };
 
-                    TargetFactionInfo.AddToCollection(targetFactionInfo);
+                    targetFactionInfos.Add(targetFactionInfo);
                 }
 
-                if (stackInfo.KillCount > targetFactionInfo.KillCount)
+                if (targetFactionInfo.Missions.Contains(mission) == false)
                 {
-                    targetFactionInfo.KillCount = stackInfo.KillCount;
-                }
+                    targetFactionInfo.Missions.Add(mission);
+                    targetFactionInfo.MissionCount++;
+                    targetFactionInfo.Reward += mission.Reward;
 
-                targetFactionInfo.MissionCount++;
-                targetFactionInfo.Reward += data.Reward;
-
-                if (data.Wing)
-                {
-                    targetFactionInfo.ShareableValue += data.Reward;
+                    if (mission.Wing)
+                    {
+                        targetFactionInfo.ShareableValue += mission.Reward;
+                    }
                 }
             }
 
             foreach (StackInfo stack in stackInformation)
             {
-                int max = stackInformation.Where(x => x.TargetFaction == stack.TargetFaction).Max(x => x.KillCount);
+                stack.Missions.Sort((x, y) => DateTime.Compare(x.CollectionTime, y.CollectionTime));
 
-                stack.Difference = max - stack.KillCount;
+                IEnumerable<StackInfo> stacksToCheck = stackInformation.Where(x => x.TargetFaction == stack.TargetFaction);
+
+                if (stacksToCheck.Any())
+                {
+                    int max = stacksToCheck.Max(x => x.KillCount);
+                    stack.Difference = max - stack.KillCount;
+                }
             }
 
-            UpdateFactionInfo();
+            foreach (var targetFaction in targetFactionInfos)
+            {
+                targetFaction.UpdateValues();
+            }
+
+            Missions = new(missions);
+            StackInformation = new(stackInformation);
+            TargetFactionInfo = new(targetFactionInfos);
         }
 
-        public void UpdateFactionInfo()
+        public void RemoveMissions(MissionState stateToRemove)
         {
-            if (targetFactionInfo == null || targetFactionInfo.Count == 0)
+            if (Missions is null || Missions.Any() == false)
             {
                 return;
             }
-            foreach (TargetFactionInfo info in TargetFactionInfo)
-            {
-                List<MissionData> data = Missions.Where(x => string.Equals(x.TargetFaction, info.TargetFaction, StringComparison.OrdinalIgnoreCase)).ToList();
 
-                info.UpdateValues(data);
+            List<MissionData> missions = new(Missions);
+            List<StackInfo> stackInformation = new(Helpers.CloneList(StackInformation));
+            List<TargetFactionInfo> targetFactionInfos = new(Helpers.CloneList(TargetFactionInfo));
+
+            foreach (var mission in Missions)
+            {
+                if (mission.CurrentState != stateToRemove || Missions.Contains(mission) == false)
+                {
+                    continue;
+                }
+
+                missions.Remove(mission);
+
+                StackInfo stackInfo = stackInformation.FirstOrDefault(x => string.Equals(x.IssuingFaction, mission.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                            string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
+
+                if (stackInfo != default && stackInfo.Missions.Contains(mission))
+                {
+                    stackInfo.Missions.Remove(mission);
+
+                    if (stackInfo.Missions.Any() == false)
+                    {
+                        stackInformation.Remove(stackInfo);
+                    }
+                    else
+                    {
+                        stackInfo.Reward -= mission.Reward;
+                        stackInfo.KillCount -= mission.KillCount;
+                        stackInfo.MissionCount--;
+                    }
+                }
+
+                TargetFactionInfo targetFactionInfo = targetFactionInfos.FirstOrDefault(x => string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
+
+                if (targetFactionInfo != default && targetFactionInfo.Missions.Contains(mission))
+                {
+                    targetFactionInfo.Missions.Remove(mission);
+
+                    if (targetFactionInfo.Missions.Any() == false)
+                    {
+                        targetFactionInfos.Remove(targetFactionInfo);
+                    }
+                    else
+                    {
+                        targetFactionInfo.MissionCount--;
+                        targetFactionInfo.Reward -= mission.Reward;
+
+                        if (mission.Wing)
+                        {
+                            targetFactionInfo.ShareableValue -= mission.Reward;
+                        }
+                    }
+                }
+            }
+
+            foreach (StackInfo stack in stackInformation)
+            {
+                stack.Missions.Sort((x, y) => DateTime.Compare(x.CollectionTime, y.CollectionTime));
+
+                IEnumerable<StackInfo> stacksToCheck = stackInformation.Where(x => x.TargetFaction == stack.TargetFaction);
+
+                if (stacksToCheck.Any())
+                {
+                    int max = stacksToCheck.Max(x => x.KillCount);
+                    stack.Difference = max - stack.KillCount;
+                }
+            }
+
+            foreach (var targetFaction in targetFactionInfos)
+            {
+                int maxCount = 0;
+                IEnumerable<StackInfo> stacksToCheck = stackInformation.Where(x => x.TargetFaction == targetFaction.TargetFaction);
+
+                if (stacksToCheck.Any())
+                {
+                    maxCount = stacksToCheck.Max(x => x.KillCount);
+                }
+
+                targetFaction.KillCount = maxCount;
+                targetFaction.UpdateValues();
+            }
+
+            Missions = new(missions);
+            StackInformation = new(stackInformation);
+            TargetFactionInfo = new(targetFactionInfos);
+        }
+
+        #region TargetFactionInfo
+        private void AddToTargetFactionInfo(MissionData mission)
+        {
+            TargetFactionInfo targetFactionInfo = TargetFactionInfo.FirstOrDefault(x => string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
+
+            if (targetFactionInfo == default)
+            {
+                targetFactionInfo = new()
+                {
+                    TargetFaction = mission.TargetFaction,
+                    KillCount = 1,
+                    Missions = new()
+                };
+
+                TargetFactionInfo.AddToCollection(targetFactionInfo);
+            }
+
+            if (targetFactionInfo.Missions.Contains(mission) == false)
+            {
+                targetFactionInfo.Missions.Add(mission);
+                targetFactionInfo.MissionCount++;
+                targetFactionInfo.Reward += mission.Reward;
+
+                if (mission.Wing)
+                {
+                    targetFactionInfo.ShareableValue += mission.Reward;
+                }
+            }
+
+            targetFactionInfo.UpdateValues();
+        }
+
+        private void RemoveFromTargetFactionInfo(MissionData mission)
+        {
+            TargetFactionInfo targetFactionInfo = TargetFactionInfo.FirstOrDefault(x => string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
+
+            if (targetFactionInfo == default)
+            {
+                return;
+            }
+
+            if (targetFactionInfo.Missions.Contains(mission))
+            {
+                targetFactionInfo.Missions.Remove(mission);
+
+                if (targetFactionInfo.Missions.Any() == false)
+                {
+                    TargetFactionInfo.RemoveFromCollection(targetFactionInfo);
+                    return;
+                }
+
+                targetFactionInfo.MissionCount--;
+                targetFactionInfo.Reward -= mission.Reward;
+
+                if (mission.Wing)
+                {
+                    targetFactionInfo.ShareableValue -= mission.Reward;
+                }
+            }
+
+            targetFactionInfo.UpdateValues();
+        }
+
+        private void UpdateFactionInfo(string targetFaction)
+        {
+            if (targetFactionInfo == null || targetFactionInfo.Any() == false)
+            {
+                return;
+            }
+
+            IEnumerable<TargetFactionInfo> factionInfos = TargetFactionInfo.Where(x => string.Equals(x.TargetFaction, targetFaction, StringComparison.OrdinalIgnoreCase));
+
+            if (factionInfos.Any() == false)
+            {
+                return;
+            }
+
+            foreach (TargetFactionInfo info in factionInfos)
+            {
+                info.UpdateValues();
             }
         }
+        #endregion
+
+        #region StackInfo Management
+        private void AddToStack(MissionData mission)
+        {
+            //Find Stack
+            StackInfo stackInfo = StackInformation.FirstOrDefault(x => string.Equals(x.IssuingFaction, mission.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                                        string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
+
+            if (stackInfo == default)
+            {
+                stackInfo = new()
+                {
+                    IssuingFaction = mission.IssuingFaction,
+                    TargetFaction = mission.TargetFaction,
+                    Missions = new()
+                };
+
+                StackInformation.AddToCollection(stackInfo);
+            }
+
+            if (stackInfo.Missions.Contains(mission) == false)
+            {
+                stackInfo.Missions.Add(mission);
+                stackInfo.Missions.Sort((x, y) => DateTime.Compare(x.CollectionTime, y.CollectionTime));
+                stackInfo.Reward += mission.Reward;
+                stackInfo.KillCount += mission.KillCount;
+                stackInfo.MissionCount++;
+            }
+
+            UpdateStackDiffence(mission);
+        }
+
+        public void RemoveFromStack(MissionData mission)
+        {
+            //Find Stack
+            StackInfo stackInfo = StackInformation.FirstOrDefault(x => string.Equals(x.IssuingFaction, mission.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
+                                                                        string.Equals(x.TargetFaction, mission.TargetFaction, StringComparison.OrdinalIgnoreCase));
+
+            if (stackInfo == default)
+            {
+                return;
+            }
+
+            if (stackInfo.Missions.Contains(mission))
+            {
+                stackInfo.Missions.Remove(mission);
+
+                if (stackInfo.Missions.Any() == false)
+                {
+                    StackInformation.RemoveFromCollection(stackInfo);
+                    UpdateStackDiffence(mission);
+                    return;
+                }
+
+                stackInfo.Reward -= mission.Reward;
+                stackInfo.KillCount -= mission.KillCount;
+                stackInfo.MissionCount--;
+            }
+            UpdateStackDiffence(mission);
+            return;
+        }
+
+        private void UpdateStackDiffence(MissionData mission)
+        {
+            if (mission == null || stackInformation is null || stackInformation.Any() == false)
+            {
+                return;
+            }
+
+            IEnumerable<StackInfo> stacksToCheck = stackInformation.Where(x => x.TargetFaction == mission.TargetFaction);
+
+            if (!stacksToCheck.Any())
+            {
+                return;
+            }
+
+            int max = stacksToCheck.Max(x => x.KillCount);
+
+            foreach (StackInfo stack in stacksToCheck)
+            {
+                stack.Difference = max - stack.KillCount;
+            }
+        }
+        #endregion
 
         public void OnBounty(BountyData data)
         {
-            IOrderedEnumerable<MissionData> missions = new List<MissionData>(Missions).OrderBy(x => x.CollectionTime);
-
             foreach (StackInfo faction in stackInformation)
             {
-                MissionData mission = missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            string.Equals(x.TargetFaction, data.VictimFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            x.CurrentState == MissionState.Active);
+                if (string.Equals(faction.TargetFaction, data.VictimFaction, StringComparison.OrdinalIgnoreCase) == false)
+                {
+                    continue;
+                }
+
+                MissionData mission = faction.Missions.FirstOrDefault(x => x.CurrentState == MissionState.Active);
 
                 if (mission == default)
                 {
                     continue;
                 }
 
-                mission.KillsWithoutStateChange++;
-
-                UpdateFactionInfo();
+                mission.Kills++;
             }
+
+            UpdateFactionInfo(data.VictimFaction);
         }
 
 
@@ -153,8 +478,7 @@ namespace ODMissionStacker.Missions
                         continue;
                     }
 
-                    //update the current states
-                    mission.CurrentState = mission.Kills >= mission.KillCount ? MissionState.Redirectied : MissionState.Active;
+                    mission.ReadyToTurnIn = false;
                 }
                 return;
             }
@@ -168,7 +492,7 @@ namespace ODMissionStacker.Missions
 
                 if (string.Equals(mission.SourceStation, currentStation.StationName, StringComparison.OrdinalIgnoreCase) && mission.CurrentState == MissionState.Redirectied)
                 {
-                    mission.CurrentState = MissionState.ReadyToTurnIn;
+                    mission.ReadyToTurnIn = true;
                 }
             }
         }
@@ -184,28 +508,31 @@ namespace ODMissionStacker.Missions
                 ? new List<MissionData>(Missions).OrderBy(x => x.CollectionTime)
                 : new List<MissionData>(Missions).OrderByDescending(x => x.CollectionTime);
 
-            List<string> factions = new();
+            List<string> factions = new(), targets = new();
 
-
-            foreach (StackInfo faction in stackInformation)
+            foreach (MissionData mission in missions)
             {
-                MissionData mission = v > 0
-                    ? missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                            factions.Contains(x.IssuingFaction) == false &&
-                                                            x.Kills < x.KillCount)
-                    : missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction.IssuingFaction, StringComparison.OrdinalIgnoreCase) &&
-                                                     factions.Contains(x.IssuingFaction) == false &&
-                                                     x.Kills > 0);
-                if (mission == default)
+                if(v > 0 ? mission.Kills >= mission.KillCount : mission.Kills <= 0)
                 {
                     continue;
                 }
 
-                factions.Add(faction.IssuingFaction);
+                if(targets.Contains($"{mission.IssuingFaction} {mission.TargetFaction}"))
+                {
+                    continue;
+                }
+
+                factions.Add(mission.IssuingFaction);
+                targets.Add($"{mission.IssuingFaction} {mission.TargetFaction}");
 
                 mission.Kills += v;
 
-                UpdateFactionInfo();
+                UpdateKillsFromUI(mission);
+            }
+
+            foreach (var faction in factions)
+            {
+                UpdateFactionInfo(faction);
             }
         }
     }

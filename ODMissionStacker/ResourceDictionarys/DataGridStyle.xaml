@@ -153,11 +153,6 @@
                         Value="{DynamicResource Redirected}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding CurrentState}"
-                         Value="{x:Static mission:MissionState.ReadyToTurnIn}">
-                <Setter Property="Foreground"
-                        Value="{DynamicResource Highlighted}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding CurrentState}"
                          Value="{x:Static mission:MissionState.Complete}">
                 <Setter Property="Foreground"
                         Value="{DynamicResource Completed}" />
@@ -173,6 +168,11 @@
                         Value="{DynamicResource Failed}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding Highlight}"
+                         Value="True">
+                <Setter Property="Foreground"
+                        Value="{DynamicResource Highlighted}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding ReadyToTurnIn}"
                          Value="True">
                 <Setter Property="Foreground"
                         Value="{DynamicResource Highlighted}" />

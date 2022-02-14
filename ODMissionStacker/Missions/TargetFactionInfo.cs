@@ -36,6 +36,7 @@ namespace ODMissionStacker.Missions
         public long AveragePerMission { get => avergePerMission; set { avergePerMission = value; OnPropertyChanged(); } }
         public long TurnInValue { get => turnInValue; set { turnInValue = value; OnPropertyChanged(); } }
         public long ShareableTurnInValue { get => shareableTurnInValue; set { shareableTurnInValue = value; OnPropertyChanged(); } }
+        public List<MissionData> Missions { get; set; }
 
         public void UpdateValues(List<MissionData> missions)
         {
@@ -56,7 +57,7 @@ namespace ODMissionStacker.Missions
 
             foreach (MissionData data in missions)
             {
-                if (string.Equals(data.TargetFaction, TargetFaction, StringComparison.OrdinalIgnoreCase) == false || data.CurrentState is MissionState.Abandonded or MissionState.Failed)
+                if (string.Equals(data.TargetFaction, TargetFaction, StringComparison.OrdinalIgnoreCase) == false || data.CurrentState is MissionState.Abandonded or MissionState.Failed or MissionState.Redirectied)
                 {
                     continue;
                 }
@@ -100,7 +101,10 @@ namespace ODMissionStacker.Missions
             }
 
             ActiveMissionsCount = activeMisCount;
-            RemainingCount = remainingKills.Max(x => x.Value[1] - x.Value[0]);
+            if (remainingKills.Count > 0)
+            {
+                RemainingCount = remainingKills.Max(x => x.Value[1] - x.Value[0]);
+            }
             TotalKills = totalKills;
             KillRatio = totalKills / (double)KillCount;
 
@@ -121,6 +125,95 @@ namespace ODMissionStacker.Missions
             KillsToNextMissonCompletion = killsRemaining.Count > 0 ? killsRemaining.Min() : 0;
             AveragePerKill = Reward / KillCount;
             AveragePerMission = Reward / MissionCount;
+            TurnInValue = turnInValue;
+            ShareableTurnInValue = wingTurnInValue;
+        }
+
+        public void UpdateValues()
+        {
+            if (Missions is null || Missions.Count == 0)
+            {
+                return;
+            }
+
+            Dictionary<string, int[]> remainingKills = new();
+            List<int> missionRemainingKills = new();
+            List<string> factions = new();
+            remainingCount = KillCount;
+
+            int activeMisCount = 0;
+            long turnInValue = 0;
+            long wingTurnInValue = 0;
+            int totalKills = 0;
+
+            foreach (MissionData data in Missions)
+            {
+                if (data.CurrentState is MissionState.Abandonded or MissionState.Failed)
+                {
+                    continue;
+                }
+
+                if (factions.Contains(data.IssuingFaction) == false)
+                {
+                    factions.Add(data.IssuingFaction);
+                }
+
+                if (remainingKills.ContainsKey(data.IssuingFaction) == false)
+                {
+                    remainingKills.Add(data.IssuingFaction, new int[] { 0, 0 });
+                }
+
+                remainingKills[data.IssuingFaction][0] += data.Kills;
+                remainingKills[data.IssuingFaction][1] += data.KillCount;
+
+                totalKills += data.KillCount;
+
+                int killsToGo = data.KillCount - data.Kills;
+
+                if (killsToGo > 0)
+                {
+                    missionRemainingKills.Add(killsToGo);
+                }
+
+                if (data.CurrentState == MissionState.Active)
+                {
+                    activeMisCount++;
+                }
+
+                if (data.CurrentState == MissionState.Redirectied)
+                {
+                    turnInValue += data.Reward;
+
+                    if (data.Wing)
+                    {
+                        wingTurnInValue += data.Reward;
+                    }
+                }
+            }
+            KillCount = remainingKills.Count > 0 ? remainingKills.Max(x => x.Value[1]) : 0;
+            ActiveMissionsCount = activeMisCount;
+            RemainingCount = remainingKills.Count > 0 ? remainingKills.Max(x => x.Value[1] - x.Value[0]) : 0;
+            TotalKills = totalKills;
+            KillRatio = Helpers.SafeDivisionDouble(totalKills, KillCount);
+
+            List<int> killsRemaining = new();
+
+            foreach (string faction in factions)
+            {
+                MissionData mission = Missions.FirstOrDefault(x => string.Equals(x.IssuingFaction, faction, StringComparison.OrdinalIgnoreCase) &&
+                                                                x.CurrentState == MissionState.Active);
+
+                if (mission == default)
+                {
+                    continue;
+                }
+
+                killsRemaining.Add(mission.KillCount - mission.Kills);
+            }
+
+            KillsToNextMissonCompletion = killsRemaining.Count > 0 ? killsRemaining.Min() : 0;
+            AveragePerKill = Helpers.SafeDivisionLong(Reward, KillCount);
+            AveragePerMission = Helpers.SafeDivisionLong(Reward, MissionCount);
             TurnInValue = turnInValue;
             ShareableTurnInValue = wingTurnInValue;
         }
