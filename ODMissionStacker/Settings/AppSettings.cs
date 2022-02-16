@@ -95,7 +95,7 @@ namespace ODMissionStacker.Settings
 
         public void SetWindowPos()
         {
-            LastWindowPos.Width = 1320;
+            LastWindowPos.Width = 1500;
             LastWindowPos.Height = 850;
 
             double screenWidth = SystemParameters.PrimaryScreenWidth;
