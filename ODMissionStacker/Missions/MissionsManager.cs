@@ -169,6 +169,7 @@ namespace ODMissionStacker.Missions
                 {
                     int max = stacksToCheck.Max(x => x.KillCount);
                     stack.Difference = max - stack.KillCount;
+                    UpdateStackLeftKills(stack);
                 }
             }
 
@@ -254,6 +255,7 @@ namespace ODMissionStacker.Missions
                 {
                     int max = stacksToCheck.Max(x => x.KillCount);
                     stack.Difference = max - stack.KillCount;
+                    UpdateStackLeftKills(stack);
                 }
             }
 
@@ -440,20 +442,21 @@ namespace ODMissionStacker.Missions
             foreach (StackInfo stack in stacksToCheck)
             {
                 stack.Difference = max - stack.KillCount;
+                UpdateStackLeftKills(stack);
             }
         }
         #endregion
 
         public void OnBounty(BountyData data)
         {
-            foreach (StackInfo faction in stackInformation)
+            foreach (StackInfo stack in stackInformation)
             {
-                if (string.Equals(faction.TargetFaction, data.VictimFaction, StringComparison.OrdinalIgnoreCase) == false)
+                if (string.Equals(stack.TargetFaction, data.VictimFaction, StringComparison.OrdinalIgnoreCase) == false)
                 {
                     continue;
                 }
 
-                MissionData mission = faction.Missions.FirstOrDefault(x => x.CurrentState == MissionState.Active);
+                MissionData mission = stack.Missions.FirstOrDefault(x => x.CurrentState == MissionState.Active);
 
                 if (mission == default)
                 {
@@ -461,6 +464,7 @@ namespace ODMissionStacker.Missions
                 }
 
                 mission.Kills++;
+                UpdateStackLeftKills(stack);
             }
 
             UpdateFactionInfo(data.VictimFaction);
@@ -534,6 +538,12 @@ namespace ODMissionStacker.Missions
             {
                 UpdateFactionInfo(faction);
             }
+        }
+
+        private void UpdateStackLeftKills(StackInfo stack)
+        {
+            stack.Left = stack.KillCount - stack.Missions.Sum(x => x.Kills);
+            stack.Kills = stack.KillCount - stack.Left;
         }
     }
 }

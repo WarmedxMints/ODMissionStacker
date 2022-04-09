@@ -8,7 +8,7 @@ namespace ODMissionStacker.Settings
         private double top;
         private double left;
         private double height = 850;
-        private double width = 1320;
+        private double width = 1500;
         private WindowState state = WindowState.Normal;
 
         public double Top { get => top; set { top = value; OnPropertyChanged(); } }

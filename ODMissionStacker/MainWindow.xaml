@@ -830,10 +830,32 @@
                                             Width="SizeToCells"
                                             HeaderStyle="{DynamicResource HeaderLeft}"
                                             Binding="{Binding TargetFaction}" />
-                        <DataGridTextColumn Header="KILLS"
+                        <DataGridTextColumn Header="TOTAL"
                                             MinWidth="45"
                                             Width="SizeToCells"
                                             Binding="{Binding KillCount, StringFormat={}{0:N0}}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="KILLS"
+                                            MinWidth="45"
+                                            Width="SizeToCells"
+                                            Binding="{Binding Kills}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Center" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="LEFT"
+                                            MinWidth="45"
+                                            Width="SizeToCells"
+                                            Binding="{Binding Left}">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="HorizontalAlignment"
