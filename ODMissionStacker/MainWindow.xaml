@@ -9,7 +9,7 @@
         xmlns:utils="clr-namespace:ODMissionStacker.Utils"
         mc:Ignorable="d"
         FontSize="16"
-        Title="OD MASSACRE STACK MANAGER v1.4"
+        Title="OD MASSACRE STACK MANAGER v1.5"
         Loaded="Window_Loaded"
         ContentRendered="Root_ContentRendered"
         Closing="Root_Closing"
@@ -40,6 +40,7 @@
         <utils:DisplyModeToVisibilty x:Key="DisplayModeToVis" />
         <utils:BoolToRowAlternation x:Key="BoolToRowAlternation" />
         <utils:DisplyModeToVisibiltyReversed x:Key="DisplayModeToVisReversed" />
+        <utils:UtcToLocalDateTimeConverter x:Key="DateTimeConverter" />
         <ObjectDataProvider x:Key="DisplayModeEnum"
                             MethodName="GetValues"
                             ObjectType="{x:Type System:Enum}">
@@ -380,12 +381,12 @@
                                     <Setter Property="HorizontalAlignment"
                                             Value="Right" />
                                     <Setter Property="Text"
-                                            Value="{Binding ExpireTime, StringFormat={}{0:ddd\, MMM d\, hh:mm}}" />
+                                            Value="{Binding ExpireTime, Converter={StaticResource DateTimeConverter}, StringFormat={}{0:ddd\, MMM d\, HH:mm}}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ElementName=Root, Path=Settings.ViewDisplayMode}"
                                                      Value="{x:Static settings:DisplayMode.Completed}">
                                             <Setter Property="Text"
-                                                    Value="{Binding Path=ExpireTime, StringFormat={}{0:ddd\, MMM d yyyy\, hh:mm}}" />
+                                                    Value="{Binding Path=ExpireTime, Converter={StaticResource DateTimeConverter}, StringFormat={}{0:ddd\, MMM d yyyy\, HH:mm}}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -547,6 +548,13 @@
                 </Grid>
             </Grid>
             <!--#endregion-->
+
+            <GridSplitter Grid.Row="4"
+                          Grid.Column="0"
+                          Grid.ColumnSpan="3"
+                          Height="5"
+                          HorizontalAlignment="Stretch"
+                          Background="{DynamicResource Foreground}" />
 
             <Grid Grid.Column="1"
                   Grid.Row="5">
