@@ -9,7 +9,7 @@
         xmlns:utils="clr-namespace:ODMissionStacker.Utils"
         mc:Ignorable="d"
         FontSize="16"
-        Title="OD MASSACRE STACK MANAGER v1.5"
+        Title="OD MASSACRE STACK MANAGER v1.6"
         Loaded="Window_Loaded"
         ContentRendered="Root_ContentRendered"
         Closing="Root_Closing"

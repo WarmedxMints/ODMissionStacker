@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Images\btn_donate_LG.png" />
     <None Remove="Images\target.png" />
     <None Remove="Images\Wing.png" />
   </ItemGroup>
@@ -18,10 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="E:\GitHub\EliteJournalReader\EliteJournalReader\EliteJournalReader.csproj" />
+    <ProjectReference Include="..\..\EliteJournalReader\EliteJournalReader\EliteJournalReader.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Images\btn_donate_LG.png" />
     <Resource Include="Images\target.png" />
     <Resource Include="Images\Wing.png" />
   </ItemGroup>

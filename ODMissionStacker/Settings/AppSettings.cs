@@ -1,4 +1,5 @@
-﻿using ODMissionStacker.Utils;
+﻿using Microsoft.Win32;
+using ODMissionStacker.Utils;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -12,10 +13,7 @@ namespace ODMissionStacker.Settings
         public event EventHandler CommanderChanged;
 
         private readonly string settingsSaveFile = Path.Combine(Directory.GetCurrentDirectory(), "Data", "AppSettings.json");
-        private static readonly string defaultJournalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                                                                         "Saved Games",
-                                                                         "Frontier Developments",
-                                                                         "Elite Dangerous");
+        private string defaultJournalPath = null;
 
         private DisplayMode viewDisplayMode;
         private GridSorting mainGridSorting;
@@ -54,10 +52,38 @@ namespace ODMissionStacker.Settings
             {
                 if (string.IsNullOrEmpty(CustomJournalPath))
                 {
-                    return defaultJournalPath;
+                    return GetJournalPath();
                 }
+
                 return CustomJournalPath;
             }
+        }
+
+        private string GetJournalPath()
+        {
+            if (string.IsNullOrEmpty(defaultJournalPath) == false)
+            {
+                return defaultJournalPath;
+            }
+
+            var defaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
+            var regKey = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+            var regKeyValue = "{4C5C32FF-BB9D-43b0-B5B4-2D72E54EAAA4}";
+            string regValue = (string)Registry.GetValue(regKey, regKeyValue, defaultPath);
+
+            if (string.IsNullOrEmpty(regValue))
+            {
+                defaultJournalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "Saved Games",
+                        "Frontier Developments",
+                        "Elite Dangerous");
+
+                return defaultJournalPath;
+            }
+
+            defaultJournalPath = Path.Combine(regValue, "Frontier Developments", "Elite Dangerous");
+
+            return defaultJournalPath;
         }
 
         public ObservableCollection<Commander> Commanders { get; set; } = new();

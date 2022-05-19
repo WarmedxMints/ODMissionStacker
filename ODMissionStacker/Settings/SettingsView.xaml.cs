@@ -1,6 +1,7 @@
 ﻿using ODMissionStacker.CustomMessageBox;
 using ODMissionStacker.Missions;
 using Ookii.Dialogs.Wpf;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 
@@ -95,6 +96,15 @@ namespace ODMissionStacker.Settings
         {
             ApplicationSettings.CustomJournalPath = null;
             MissionsContainer.RestartWatcher();
+        }
+
+        private void PayPalDonateButton_Click(object sender, RoutedEventArgs e)
+        {
+            ProcessStartInfo psi = new();
+            psi.UseShellExecute = true;
+            psi.FileName = "https://www.paypal.com/donate/?business=UPEJS3PN7H4XJ&no_recurring=0&item_name=Creator+of+OD+Software.+Thank+you+for+your+donation.&currency_code=GBP";
+            _ = Process.Start(psi);
+            e.Handled = true;
         }
     }
 }

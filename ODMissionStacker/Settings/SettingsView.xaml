@@ -127,11 +127,23 @@
                           Margin="0,5"
                           Foreground="{DynamicResource Foreground}"
                           VerticalAlignment="Center"/>
-                
-                <Button Command="{x:Static SystemCommands.CloseWindowCommand}"
-                        Foreground="{DynamicResource Foreground}"
-                        Content="Close"
-                        HorizontalAlignment="Right" />
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button Height="20" Width="70"
+                            Margin="0,0,15,0"
+                            x:Name="PayPalDonateButton"
+                            Click="PayPalDonateButton_Click">
+                        <Button.Template>
+                            <ControlTemplate>
+                                <Image Source="/Images/btn_donate_LG.png"/>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Command="{x:Static SystemCommands.CloseWindowCommand}" 
+                            Foreground="{DynamicResource Foreground}"
+                        Content="Close"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Border>
