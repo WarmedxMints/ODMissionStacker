@@ -388,12 +388,19 @@ namespace ODMissionStacker.Missions
         private void OnBoutnyEvent(object sender, BountyEvent.BountyEventArgs e)
         {
             //Ignore skimmers, ground and zero value bounties.
-            if (JournalWatcher.IsLive == false || e.VictimFaction.Contains("faction_none") || e.VictimFaction.Contains("faction_Pirate") || e.TotalReward <= 0)
+            if (JournalWatcher.IsLive == false || e.VictimFaction.Contains("faction_none") || e.VictimFaction.Contains("faction_Pirate") || e.Target.Contains("suit") || e.TotalReward <= 0)
             {
                 return;
             }
 
-            BountyData data = new(e);
+            TimeSpan timeSinceLastKill = new();
+
+            if (Bounties.Any())
+            {
+                timeSinceLastKill = e.Timestamp - Bounties[^1].TimeStamp;
+            }
+
+            BountyData data = new(e, timeSinceLastKill);
 
             AddBounty(data);
 

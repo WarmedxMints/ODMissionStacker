@@ -194,14 +194,21 @@ namespace ODMissionStacker.Missions
             }
 
             //Ignore skimmers, ground and zero value bounties.
-            if (e.VictimFaction.Contains("faction_none") || e.VictimFaction.Contains("faction_Pirate") || e.TotalReward <= 0)
+            if (e.VictimFaction.Contains("faction_none") || e.VictimFaction.Contains("faction_Pirate") || e.Target.Contains("suit") || e.TotalReward <= 0)
             {
                 return;
             }
 
             Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
 
-            bountiesData.Add(new BountyData(e));
+            TimeSpan timeSinceLastKill = new();
+
+            if(bountiesData.Any())
+            {
+                timeSinceLastKill = e.Timestamp - bountiesData[bountiesData.Count - 1].TimeStamp;
+            }
+
+            bountiesData.Add(new BountyData(e,timeSinceLastKill));
 
             if (bountiesData.Count > 20)
             {

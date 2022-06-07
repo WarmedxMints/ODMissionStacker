@@ -201,4 +201,16 @@
         <Setter Property="HorizontalContentAlignment"
                 Value="Left" />
     </Style>
+
+    <Style TargetType="{x:Type DataGridColumnHeader}"
+           x:Key="HeaderRight">
+        <Setter Property="Background"
+                Value="{DynamicResource Background}" />
+        <Setter Property="BorderBrush"
+                Value="Yellow" />
+        <Setter Property="BorderThickness"
+                Value="0,0,0,0.5" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Right" />
+    </Style>
 </ResourceDictionary>

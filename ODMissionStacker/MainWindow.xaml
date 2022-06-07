@@ -9,7 +9,7 @@
         xmlns:utils="clr-namespace:ODMissionStacker.Utils"
         mc:Ignorable="d"
         FontSize="16"
-        Title="OD MASSACRE STACK MANAGER v1.6"
+        Title="OD MASSACRE STACK MANAGER v1.7"
         Loaded="Window_Loaded"
         ContentRendered="Root_ContentRendered"
         Closing="Root_Closing"
@@ -41,6 +41,8 @@
         <utils:BoolToRowAlternation x:Key="BoolToRowAlternation" />
         <utils:DisplyModeToVisibiltyReversed x:Key="DisplayModeToVisReversed" />
         <utils:UtcToLocalDateTimeConverter x:Key="DateTimeConverter" />
+        <utils:TimespanToStringConverter x:Key="TimeSpanConverter" />
+        
         <ObjectDataProvider x:Key="DisplayModeEnum"
                             MethodName="GetValues"
                             ObjectType="{x:Type System:Enum}">
@@ -451,7 +453,20 @@
                                                 Binding="{Binding VictimFaction}" />
                             <DataGridTextColumn Header="REWARD"
                                                 Width="90"
-                                                Binding="{Binding TotalReward,StringFormat={}{0:N0} cr}">
+                                                Binding="{Binding TotalReward,StringFormat={}{0:N0} cr}">                                
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment"
+                                                Value="Right" />
+                                        <Setter Property="Text"
+                                                Value="1,999,999" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="TIME"
+                                                HeaderStyle="{DynamicResource HeaderRight}"
+                                                Width="Auto"
+                                                Binding="{Binding TimeSinceLastKill,Converter={StaticResource TimeSpanConverter}}">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="{x:Type TextBlock}">
                                         <Setter Property="HorizontalAlignment"

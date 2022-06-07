@@ -100,9 +100,11 @@ namespace ODMissionStacker.Settings
 
         private void PayPalDonateButton_Click(object sender, RoutedEventArgs e)
         {
-            ProcessStartInfo psi = new();
-            psi.UseShellExecute = true;
-            psi.FileName = "https://www.paypal.com/donate/?business=UPEJS3PN7H4XJ&no_recurring=0&item_name=Creator+of+OD+Software.+Thank+you+for+your+donation.&currency_code=GBP";
+            ProcessStartInfo psi = new()
+            {
+                UseShellExecute = true,
+                FileName = "https://www.paypal.com/donate/?business=UPEJS3PN7H4XJ&no_recurring=0&item_name=Thank+you+for+supporting+OD+Software.+o7&currency_code=GBP"
+            };
             _ = Process.Start(psi);
             e.Handled = true;
         }
