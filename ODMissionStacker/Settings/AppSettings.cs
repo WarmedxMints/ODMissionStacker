@@ -12,7 +12,7 @@ namespace ODMissionStacker.Settings
     {
         public event EventHandler CommanderChanged;
 
-        private readonly string settingsSaveFile = Path.Combine(Directory.GetCurrentDirectory(), "Data", "AppSettings.json");
+        private readonly string settingsSaveFile = Path.Combine(Directory.GetCurrentDirectory(), "Data", "AppSettingsv2.json");
         private string defaultJournalPath = null;
 
         private DisplayMode viewDisplayMode;

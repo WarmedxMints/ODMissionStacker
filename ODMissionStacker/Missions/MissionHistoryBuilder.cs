@@ -1,8 +1,12 @@
 ﻿using EliteJournalReader;
 using EliteJournalReader.Events;
+using ODMissionStacker.CustomMessageBox;
+using ODMissionStacker.Settings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
+using static ODMissionStacker.Missions.MissionsContainer;
 
 namespace ODMissionStacker.Missions
 {
@@ -10,28 +14,47 @@ namespace ODMissionStacker.Missions
     {
         private readonly JournalWatcher watcher;
         private readonly string commanderFid;
+        private readonly string commanderName;
 
-        private bool odyssey;
-        private Dictionary<long, MissionData> horizonMissionsData = new(), odysseyMissionsData = new();
+        //private bool odyssey;
+        private GameVersion CurrentGameMode { get; set; }
+
+        private readonly Dictionary<long, MissionData> legacyMissionsData = new();
+        private readonly Dictionary<long, MissionData> liveMissionsData = new();
         private bool handleLogs = true;
         private Station currentStation;
-        private List<StackInfo> stackInformation = new();
-        private List<BountyData> bountiesData = new();
+        private readonly List<StackInfo> stackInformation = new();
+        private readonly List<BountyData> bountiesData = new();
 
-        public MissionHistoryBuilder(JournalWatcher watcher, string fid)
+        public MissionHistoryBuilder(JournalWatcher watcher, string fid, string commanderName)
         {
             commanderFid = fid;
-
+            this.commanderName = commanderName;
             this.watcher = watcher;
         }
 
         private void OnFileHeaderEvent(object sender, FileheaderEvent.FileheaderEventArgs e)
         {
-            odyssey = e.Odyssey;
+            var gameversion = Version.Parse(e.gameversion);
+
+            CurrentGameMode = gameversion.Major >= 4 ? GameVersion.Live : GameVersion.Legacy;
+        }
+
+        private void OnLoadGameEvent(object sender, LoadGameEvent.LoadGameEventArgs e)
+        {
+            if(CurrentGameMode == GameVersion.Legacy)
+            {
+                return;
+            }
         }
 
         private void OnCommanderEvent(object sender, CommanderEvent.CommanderEventArgs e)
         {
+            if (e.FID is null)
+            {
+                handleLogs = string.Equals(e.Name, commanderName, StringComparison.OrdinalIgnoreCase);
+                return;
+            }
             handleLogs = e.FID.Equals(commanderFid);
         }
 
@@ -87,16 +110,24 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (e.KillCount is null || e.KillCount == 0 || string.IsNullOrEmpty(e.TargetFaction) || e.TargetType == null || !e.TargetType.Contains("MissionUtil_FactionTag_Pirate", StringComparison.InvariantCultureIgnoreCase))
+            if (currentStation is null || e.KillCount is null || e.KillCount == 0 || string.IsNullOrEmpty(e.TargetFaction) || e.TargetType == null || !e.TargetType.Contains("MissionUtil_FactionTag_Pirate", StringComparison.InvariantCultureIgnoreCase))
             {
                 return;
             }
 
 
-            MissionData missionData = new(null, currentStation, e);
-            missionData.CurrentState = MissionState.Active;
+            MissionData missionData = new(null, currentStation, e)
+            {
+                CurrentState = MissionState.Active
+            };
 
-            AddMissionToDictionary(ref odyssey ? ref odysseyMissionsData : ref horizonMissionsData, missionData);
+            Dictionary<long, MissionData> missionDictionary = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
+
+            AddMissionToDictionary(ref missionDictionary, missionData);
 
             //Stack Information
             StackInfo stackInfo = stackInformation.FirstOrDefault(x => x.IssuingFaction == missionData.IssuingFaction &&
@@ -121,7 +152,11 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
+            Dictionary<long, MissionData> dict = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
 
             if (dict is null || !dict.ContainsKey(e.MissionID))
             {
@@ -140,7 +175,11 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
+            Dictionary<long, MissionData> dict = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
 
             if (dict is null || !dict.ContainsKey(e.MissionID))
             {
@@ -159,12 +198,18 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? (odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID)) : (horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID)))
+            Dictionary<long, MissionData> dict = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            MissionData missionData = odyssey ? odysseyMissionsData[e.MissionID] : horizonMissionsData[e.MissionID];
+            MissionData missionData = dict[e.MissionID];
             missionData.CurrentState = MissionState.Abandonded;
             missionData.Reward = 0;
         }
@@ -176,14 +221,53 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? (odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID)) : (horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID)))
+            Dictionary<long, MissionData> dict = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            MissionData missionData = odyssey ? odysseyMissionsData[e.MissionID] : horizonMissionsData[e.MissionID];
+            MissionData missionData = dict[e.MissionID];
             missionData.CurrentState = MissionState.Failed;
             missionData.Reward = 0;
+        }
+
+        private void OnMissionsEvent(object sender, MissionsEvent.MissionsEventArgs e)
+        {
+            if (handleLogs == false)
+            {
+                return;
+            }
+
+            var missions = new List<Mission>();
+
+            missions.AddRange(e.Active);
+            missions.AddRange(e.Complete);
+            missions.AddRange(e.Failed);
+
+
+            var missionsToRemove = new List<long>();
+
+            Dictionary<long, MissionData> dict = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
+
+            foreach (var mission in dict.Keys)
+            {
+                var mis = missions.FirstOrDefault(x => x.MissionID == mission);
+
+                if (mis is null)
+                {
+                    dict[mission].CurrentState = MissionState.Complete;
+                }
+            }
         }
 
         private void OnBoutnyEvent(object sender, BountyEvent.BountyEventArgs e)
@@ -199,13 +283,17 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            Dictionary<long, MissionData> dict = odyssey ? odysseyMissionsData : horizonMissionsData;
+            Dictionary<long, MissionData> dict = CurrentGameMode switch
+            {
+                GameVersion.Legacy => legacyMissionsData,
+                _ => liveMissionsData,
+            };
 
             TimeSpan timeSinceLastKill = new();
 
             if(bountiesData.Any())
             {
-                timeSinceLastKill = e.Timestamp - bountiesData[bountiesData.Count - 1].TimeStamp;
+                timeSinceLastKill = e.Timestamp - bountiesData[^1].TimeStamp;
             }
 
             bountiesData.Add(new BountyData(e,timeSinceLastKill));
@@ -239,10 +327,7 @@ namespace ODMissionStacker.Missions
 
         private static void AddMissionToDictionary(ref Dictionary<long, MissionData> missionDictionary, MissionData missionData)
         {
-            if (missionDictionary == null)
-            {
-                missionDictionary = new();
-            }
+            missionDictionary ??= new();
 
             if (missionDictionary.ContainsKey(missionData.MissionID))
             {
@@ -252,7 +337,7 @@ namespace ODMissionStacker.Missions
             missionDictionary.Add(missionData.MissionID, missionData);
         }
 
-        public Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>, List<BountyData>> GetHistory(IProgress<string> progress, MissionsContainer container)
+        public Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>, List<BountyData>> GetHistory(IProgress<string> progress)
         {
             SubscribeToEvents();
 
@@ -262,7 +347,7 @@ namespace ODMissionStacker.Missions
 
             progress.Report("Processing Log Events");
 
-            return Tuple.Create(horizonMissionsData, odysseyMissionsData, bountiesData);
+            return Tuple.Create(legacyMissionsData, liveMissionsData,  bountiesData);
         }
 
         private void SubscribeToEvents()
@@ -288,6 +373,8 @@ namespace ODMissionStacker.Missions
             watcher.GetEvent<MissionFailedEvent>()?.AddHandler(OnMissionFailed);
 
             watcher.GetEvent<BountyEvent>()?.AddHandler(OnBoutnyEvent);
+
+            watcher.GetEvent<MissionsEvent>()?.AddHandler(OnMissionsEvent);
         }
 
         private void UnsubscribeFromEvents()
@@ -313,6 +400,8 @@ namespace ODMissionStacker.Missions
             watcher.GetEvent<MissionFailedEvent>()?.RemoveHandler(OnMissionFailed);
 
             watcher.GetEvent<BountyEvent>()?.RemoveHandler(OnBoutnyEvent);
+
+            watcher.GetEvent<MissionsEvent>()?.RemoveHandler(OnMissionsEvent);
         }
     }
 }

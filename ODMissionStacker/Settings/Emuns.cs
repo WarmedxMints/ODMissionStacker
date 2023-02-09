@@ -2,8 +2,8 @@
 {
     public enum DisplayMode
     {
-        Horizons,
-        Odyssey,
+        Live,
+        Legacy,
         Completed
     }
 

@@ -53,14 +53,14 @@ namespace ODMissionStacker.Missions
             Progress<string> progress = new();
             progress.ProgressChanged += (_, newText) => ProgressText.Text = newText;
 
-            MissionHistoryBuilder builder = new(container.JournalWatcher, container.CommanderFID);
+            MissionHistoryBuilder builder = new(container.JournalWatcher, container.CommanderFID, container.CommanderName);
 
             try
             {
-                Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>, List<BountyData>> ret = await Task.Run(() => builder.GetHistory(progress, container));
+                Tuple<Dictionary<long, MissionData>, Dictionary<long, MissionData>, List<BountyData>> ret = await Task.Run(() => builder.GetHistory(progress));
                 TitleText.Text = "Processing Journal File : ";
                 TitleText.Text = "Processing Mission ID : ";
-                await Task.Run(() => container.ProcessHistory(ret.Item1, ret.Item2, ret.Item3, progress));
+                await Task.Run(() => container.ProcessHistory(ret.Item1, ret.Item2, ret.Item3,progress));
             }
             catch (OperationCanceledException)
             {

@@ -16,18 +16,25 @@ namespace ODMissionStacker.Missions
 {
     public class MissionsContainer : PropertyChangeNotify
     {
+
+        public enum GameVersion
+        {
+            Live,
+            Legacy
+        }
+
         #region Private Values
-        private string HorizonDataSaveFile => Path.Combine(Directory.GetCurrentDirectory(), "Data", $"[{CommanderFID}] HorizonsMissions.json");
-        private string OdysseyDataSaveFile => Path.Combine(Directory.GetCurrentDirectory(), "Data", $"[{CommanderFID}] OdysseyMissions.json");
+        private string LegacyDataSaveFile => Path.Combine(Directory.GetCurrentDirectory(), "Data", $"[{CommanderFID}] LegacyMissions.json");
+        private string LiveDataSaveFile => Path.Combine(Directory.GetCurrentDirectory(), "Data", $"[{CommanderFID}] LiveMissions.json");
 
         private static readonly string clipboarDataSaveFile = Path.Combine(Directory.GetCurrentDirectory(), "Data", "MissionSourceClipboard.json");
         private string BountyDataSaveFile => Path.Combine(Directory.GetCurrentDirectory(), "Data", $"[{CommanderFID}] BountyData.json");
 
-        private bool odyssey;
+        //private bool odyssey;
 
         private Station currentStation;
 
-        private Dictionary<long, MissionData> horizonMissionsData, odysseyMissionsData;
+        private Dictionary<long, MissionData> legacyMissionsData, liveMissionData;
 
         private readonly AppSettings appSettings;
         #endregion
@@ -37,23 +44,24 @@ namespace ODMissionStacker.Missions
 
         public MissionsManager CurrentManager => appSettings.ViewDisplayMode switch
         {
-            DisplayMode.Horizons => HorizionMissions,
-            DisplayMode.Odyssey => OdysseyMissions,
+            DisplayMode.Live => LiveMissions,
             DisplayMode.Completed => CompletedMissions,
-            _ => HorizionMissions,
+            _ => LiveMissions,
         };
 
-        private MissionsManager horizonMissions = new();
-        private MissionsManager odysseyMissions = new();
+        private MissionsManager legacyMissions = new();
+        private MissionsManager liveMissions = new();
         private MissionsManager completedMissions = new();
         private ObservableCollection<MissionSourceClipboardData> missionSourceClipboards = new();
         private ObservableCollection<BountyData> bounties = new();
 
-        public MissionsManager HorizionMissions { get => horizonMissions; set { horizonMissions = value; OnPropertyChanged(); } }
-        public MissionsManager OdysseyMissions { get => odysseyMissions; set { odysseyMissions = value; OnPropertyChanged(); } }
+        public MissionsManager LegacyMissions { get => legacyMissions; set { legacyMissions = value; OnPropertyChanged(); } }
+        public MissionsManager LiveMissions { get => liveMissions; set { liveMissions = value; OnPropertyChanged(); } }
         public MissionsManager CompletedMissions { get => completedMissions; set { completedMissions = value; OnPropertyChanged(); } }
         public ObservableCollection<MissionSourceClipboardData> MissionSourceClipboards { get => missionSourceClipboards; set { missionSourceClipboards = value; OnPropertyChanged(); } }
         public ObservableCollection<BountyData> Bounties { get => bounties; set { bounties = value; OnPropertyChanged(); } }
+
+        public GameVersion CurrentGameMode { get; set; }
         #endregion
 
         public MissionsContainer(AppSettings settings)
@@ -74,6 +82,8 @@ namespace ODMissionStacker.Missions
         {
             JournalWatcher.GetEvent<FileheaderEvent>()?.AddHandler(OnFileHeaderEvent);
 
+            JournalWatcher.GetEvent<LoadGameEvent>()?.AddHandler(OnLoadGameEvent);
+
             JournalWatcher.GetEvent<LocationEvent>()?.AddHandler(OnLocationEvent);
 
             JournalWatcher.GetEvent<DockedEvent>()?.AddHandler(OnDockedAtStation);
@@ -93,11 +103,15 @@ namespace ODMissionStacker.Missions
             JournalWatcher.GetEvent<BountyEvent>()?.AddHandler(OnBoutnyEvent);
 
             JournalWatcher.GetEvent<CommanderEvent>()?.AddHandler(OnCommanderEvent);
+
+            JournalWatcher.GetEvent<MissionsEvent>()?.AddHandler(OnMissionsEvent);
         }
 
         private void UnSubscribeFromEvents()
         {
             JournalWatcher.GetEvent<FileheaderEvent>()?.RemoveHandler(OnFileHeaderEvent);
+
+            JournalWatcher.GetEvent<LoadGameEvent>()?.RemoveHandler(OnLoadGameEvent);
 
             JournalWatcher.GetEvent<LocationEvent>()?.RemoveHandler(OnLocationEvent);
 
@@ -175,7 +189,17 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            odyssey = e.Odyssey;
+            var gameversion = Version.Parse(e.gameversion);
+
+            CurrentGameMode = gameversion.Major >= 4 ? GameVersion.Live : GameVersion.Legacy;
+        }
+
+        private void OnLoadGameEvent(object sender, LoadGameEvent.LoadGameEventArgs e)
+        {
+            if (JournalWatcher.ReadingHistory)
+            {
+                return;
+            }           
         }
 
         private void OnLocationEvent(object sender, LocationEvent.LocationEventArgs e)
@@ -211,14 +235,12 @@ namespace ODMissionStacker.Missions
                 SystemAddress = e.SystemAddress,
                 StationName = e.StationName
             };
-
-            if (odyssey)
+            MissionsManager missionsManager = CurrentGameMode switch
             {
-                OdysseyMissions.UpdateMissionsStates(currentStation);
-                return;
-            }
-
-            HorizionMissions.UpdateMissionsStates(currentStation);
+                GameVersion.Legacy => LegacyMissions,
+                _ => LiveMissions,
+            };
+            missionsManager.UpdateMissionsStates(currentStation);
         }
 
         private void OnUndockedFromStation(object sender, UndockedEvent.UndockedEventArgs e)
@@ -229,14 +251,12 @@ namespace ODMissionStacker.Missions
             }
 
             currentStation = null;
-
-            if (odyssey)
+            MissionsManager missionsManager = CurrentGameMode switch
             {
-                OdysseyMissions.UpdateMissionsStates(currentStation);
-                return;
-            }
-
-            HorizionMissions.UpdateMissionsStates(currentStation);
+                GameVersion.Legacy => LegacyMissions,
+                _ => LiveMissions,
+            };
+            missionsManager.UpdateMissionsStates(currentStation);
         }
 
         private void OnMissionAccepted(object sender, MissionAcceptedEvent.MissionAcceptedEventArgs e)
@@ -247,11 +267,29 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            MissionData missionData = new(this, currentStation, e);
-            missionData.CurrentState = MissionState.Active;
+            MissionData missionData = new(this, currentStation, e)
+            {
+                CurrentState = MissionState.Active
+            };
 
-            AddMissionToDictionary(ref odyssey ? ref odysseyMissionsData : ref horizonMissionsData, missionData);
-            AddMissionToGui(odyssey ? OdysseyMissions : HorizionMissions, missionData);
+            Dictionary<long, MissionData> dict;
+            MissionsManager missionsManager;
+
+            switch (CurrentGameMode)
+            {
+                case GameVersion.Legacy:
+                    missionsManager = LegacyMissions;
+                    dict = legacyMissionsData;
+                    break;
+                default:
+                case GameVersion.Live:
+                    missionsManager = LiveMissions;
+                    dict = liveMissionData;
+                    break;
+            }
+
+            AddMissionToDictionary(ref dict, missionData);
+            AddMissionToGui(missionsManager, missionData);
 
             SaveData();
         }
@@ -263,52 +301,65 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            Dictionary<long, MissionData> dict;
+            MissionsManager missionsManager;
+
+            switch (CurrentGameMode)
+            {
+                case GameVersion.Legacy:
+                    missionsManager = LegacyMissions;
+                    dict = legacyMissionsData;
+                    break;
+                default:
+                case GameVersion.Live:
+                    missionsManager = LiveMissions;
+                    dict = liveMissionData;
+                    break;
+            }
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            if (odyssey)
-            {
-                odysseyMissionsData[e.MissionID].CurrentState = MissionState.Redirectied;
-                odysseyMissionsData[e.MissionID].Kills = odysseyMissionsData[e.MissionID].KillCount;
-                OdysseyMissions.MissionRedirected(odysseyMissionsData[e.MissionID]);
-                SaveData();
-                return;
-            }
-
-            horizonMissionsData[e.MissionID].CurrentState = MissionState.Redirectied;
-            horizonMissionsData[e.MissionID].Kills = horizonMissionsData[e.MissionID].KillCount;
-            HorizionMissions.MissionRedirected(horizonMissionsData[e.MissionID]);
+            dict[e.MissionID].CurrentState = MissionState.Redirectied;
+            dict[e.MissionID].Kills = dict[e.MissionID].KillCount;
+            missionsManager.MissionRedirected(dict[e.MissionID]);
             SaveData();
         }
 
         private void OnMissionCompleted(object sender, MissionCompletedEvent.MissionCompletedEventArgs e)
         {
+
             if (JournalWatcher.IsLive == false)
             {
                 return;
             }
 
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            Dictionary<long, MissionData> dict;
+            MissionsManager missionsManager;
+
+            switch (CurrentGameMode)
+            {
+                case GameVersion.Legacy:
+                    missionsManager = LegacyMissions;
+                    dict = legacyMissionsData;
+                    break;
+                default:
+                case GameVersion.Live:
+                    missionsManager = LiveMissions;
+                    dict = liveMissionData;
+                    break;
+            }
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            MissionData missionData;
+            MissionData missionData = dict[e.MissionID];
 
-            if (odyssey)
-            {
-                missionData = odysseyMissionsData[e.MissionID];
-
-                OdysseyMissions.RemoveMission(missionData);
-            }
-            else
-            {
-                missionData = horizonMissionsData[e.MissionID];
-
-                HorizionMissions.RemoveMission(missionData);
-            }
+            missionsManager.RemoveMission(missionData);
 
             missionData.CurrentState = MissionState.Complete;
             missionData.Reward = e.Reward;
@@ -324,25 +375,30 @@ namespace ODMissionStacker.Missions
                 return;
 
             }
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            Dictionary<long, MissionData> dict;
+            MissionsManager missionsManager;
+
+            switch (CurrentGameMode)
+            {
+                case GameVersion.Legacy:
+                    missionsManager = LegacyMissions;
+                    dict = legacyMissionsData;
+                    break;
+                default:
+                case GameVersion.Live:
+                    missionsManager = LiveMissions;
+                    dict = liveMissionData;
+                    break;
+            }
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            MissionData missionData;
+            MissionData missionData = dict[e.MissionID];
 
-            if (odyssey)
-            {
-                missionData = odysseyMissionsData[e.MissionID];
-
-                OdysseyMissions.RemoveMission(missionData);
-            }
-            else
-            {
-                missionData = horizonMissionsData[e.MissionID];
-
-                HorizionMissions.RemoveMission(missionData);
-            }
+            missionsManager.RemoveMission(missionData);
 
             missionData.CurrentState = MissionState.Failed;
             missionData.Reward = 0;
@@ -358,25 +414,30 @@ namespace ODMissionStacker.Missions
                 return;
             }
 
-            if (odyssey ? odysseyMissionsData is null || !odysseyMissionsData.ContainsKey(e.MissionID) : horizonMissionsData is null || !horizonMissionsData.ContainsKey(e.MissionID))
+            Dictionary<long, MissionData> dict;
+            MissionsManager missionsManager;
+
+            switch (CurrentGameMode)
+            {
+                case GameVersion.Legacy:
+                    missionsManager = LegacyMissions;
+                    dict = legacyMissionsData;
+                    break;
+                default:
+                case GameVersion.Live:
+                    missionsManager = LiveMissions;
+                    dict = liveMissionData;
+                    break;
+            }
+
+            if (dict is null || !dict.ContainsKey(e.MissionID))
             {
                 return;
             }
 
-            MissionData missionData;
+            MissionData missionData = dict[e.MissionID];
 
-            if (odyssey)
-            {
-                missionData = odysseyMissionsData[e.MissionID];
-
-                OdysseyMissions.RemoveMission(missionData);
-            }
-            else
-            {
-                missionData = horizonMissionsData[e.MissionID];
-
-                HorizionMissions.RemoveMission(missionData);
-            }
+            missionsManager.RemoveMission(missionData);
 
             missionData.CurrentState = MissionState.Abandonded;
             missionData.Reward = 0;
@@ -384,6 +445,48 @@ namespace ODMissionStacker.Missions
             CompletedMissions.AddMission(missionData);
             SaveData();
         }
+
+        private void OnMissionsEvent(object sender, MissionsEvent.MissionsEventArgs e)
+        {
+            if (JournalWatcher.IsLive == false)
+            {
+                return;
+            }
+
+            MissionsManager missionsManager = CurrentGameMode switch
+            {
+                GameVersion.Legacy => LegacyMissions,
+                _ => LiveMissions,
+            };
+            var missions = new List<Mission>();
+
+            missions.AddRange(e.Active);
+            missions.AddRange(e.Complete);
+            missions.AddRange(e.Failed);
+
+
+            var missionsToRemove = new List<MissionData>();
+
+            foreach (var mission in missionsManager.Missions)
+            {
+                var mis = missions.FirstOrDefault(x => x.MissionID == mission.MissionID);
+
+                if (mis is null)
+                {
+                    missionsToRemove.Add(mission);
+                }
+            }
+
+            foreach (var mission in missionsToRemove)
+            {
+                missionsManager.RemoveMission(mission);
+                mission.CurrentState = MissionState.Complete;
+                CompletedMissions.AddMission(mission);
+            }
+
+            SaveData();
+        }
+
 
         private void OnBoutnyEvent(object sender, BountyEvent.BountyEventArgs e)
         {
@@ -403,15 +506,12 @@ namespace ODMissionStacker.Missions
             BountyData data = new(e, timeSinceLastKill);
 
             AddBounty(data);
-
-            if (odyssey)
+            MissionsManager missionsManager = CurrentGameMode switch
             {
-                OdysseyMissions.OnBounty(data);
-                SaveData();
-                return;
-            }
-
-            HorizionMissions.OnBounty(data);
+                GameVersion.Legacy => LegacyMissions,
+                _ => LiveMissions,
+            };
+            missionsManager.OnBounty(data);
             SaveData();
         }
 
@@ -436,8 +536,7 @@ namespace ODMissionStacker.Missions
                 appSettings.CurrentCommander = cmdr;
 
                 CompletedMissions.Missions.ClearCollection();
-                HorizionMissions.Missions.ClearCollection();
-                OdysseyMissions.Missions.ClearCollection();
+                LiveMissions.Missions.ClearCollection();
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -465,28 +564,28 @@ namespace ODMissionStacker.Missions
             LoadData();
         }
 
-        public void ProcessHistory(Dictionary<long, MissionData> horizonDictionary, Dictionary<long, MissionData> odysseyDisctionary, List<BountyData> bountiesData, IProgress<string> progress)
+        public void ProcessHistory(Dictionary<long, MissionData> legacyDisctionary, Dictionary<long, MissionData> liveDictionary, List<BountyData> bountiesData, IProgress<string> progress)
         {
-            horizonMissionsData = new(horizonDictionary);
-            odysseyMissionsData = new(odysseyDisctionary);
+            liveMissionData = new(liveDictionary);
+            legacyMissionsData = new(legacyDisctionary);
 
-            HorizionMissions.Missions.ClearCollection();
-            OdysseyMissions.Missions.ClearCollection();
+            LegacyMissions.Missions.ClearCollection();
+            LiveMissions.Missions.ClearCollection();
             CompletedMissions.Missions.ClearCollection();
             Bounties.ClearCollection();
 
+            if (!(legacyDisctionary is null && legacyDisctionary.Count <= 0))
+            {
+                progress.Report("Legacy Missions");
+
+                ProcessDictionary(legacyDisctionary, LegacyMissions);
+            }
             //Horizons Data
-            if (!(horizonDictionary is null && horizonDictionary.Count <= 0))
+            if (!(liveDictionary is null && liveDictionary.Count <= 0))
             {
                 progress.Report("Horizon Missions");
 
-                ProcessDictionary(horizonMissionsData, HorizionMissions);
-            }
-            if (!(odysseyDisctionary is null && odysseyDisctionary.Count <= 0))
-            {
-                progress.Report("Odyssey Missions");
-
-                ProcessDictionary(odysseyMissionsData, OdysseyMissions);
+                ProcessDictionary(liveMissionData, LiveMissions);
             }
 
             if (bountiesData.Count > 0)
@@ -511,7 +610,7 @@ namespace ODMissionStacker.Missions
         }
 
         public string CommanderFID => appSettings.CurrentCommander?.FID;
-
+        public string CommanderName => appSettings.CurrentCommander?.Name;
         public void SetCurrentManager()
         {
             OnPropertyChanged("CurrentManager");
@@ -519,13 +618,18 @@ namespace ODMissionStacker.Missions
 
         internal void MoveMission(MissionData missionData, bool moveToActive)
         {
-            bool horizonsMission = false;
+            MissionsManager manager = null;
 
-            if (horizonMissionsData is not null && horizonMissionsData.ContainsKey(missionData.MissionID))
+            if(LiveMissions is not null && liveMissionData.ContainsKey(missionData.MissionID))
             {
-                horizonsMission = true;
+                manager = LiveMissions;
             }
-            else if (odysseyMissionsData is not null && odysseyMissionsData.ContainsKey(missionData.MissionID) == false)
+            else if (legacyMissionsData is not null && legacyMissionsData.ContainsKey(missionData.MissionID))
+            {
+                manager = LegacyMissions;
+            }
+
+            if(manager == null)
             {
                 return;
             }
@@ -537,18 +641,11 @@ namespace ODMissionStacker.Missions
                     CompletedMissions.RemoveMission(missionData);
                 }
 
-                if (horizonsMission && !HorizionMissions.Missions.Contains(missionData))
+                if (!manager.Missions.Contains(missionData))
                 {
-                    HorizionMissions.AddMission(missionData);
-                    return;
+                    manager.AddMission(missionData);
                 }
 
-                if (horizonsMission || OdysseyMissions.Missions.Contains(missionData))
-                {
-                    return;
-                }
-
-                OdysseyMissions.AddMission(missionData);
                 return;
             }
 
@@ -557,18 +654,10 @@ namespace ODMissionStacker.Missions
                 CompletedMissions.AddMission(missionData);
             }
 
-            if (horizonsMission && HorizionMissions.Missions.Contains(missionData))
+            if (manager.Missions.Contains(missionData))
             {
-                HorizionMissions.RemoveMission(missionData);
-                return;
+                manager.RemoveMission(missionData);
             }
-
-            if (horizonsMission || !OdysseyMissions.Missions.Contains(missionData))
-            {
-                return;
-            }
-
-            OdysseyMissions.RemoveMission(missionData);
         }
 
         public void DeleteMission(MissionData missionData)
@@ -584,23 +673,20 @@ namespace ODMissionStacker.Missions
 
             Dictionary<long, MissionData> dictionary = GetMissionDictionary(missionData);
 
-            if (dictionary is not null)
-            {
-                dictionary.Remove(missionData.MissionID);
-            }
+            dictionary?.Remove(missionData.MissionID);
 
             SaveData();
         }
 
         private Dictionary<long, MissionData> GetMissionDictionary(MissionData missionData)
         {
-            if (horizonMissionsData is not null && horizonMissionsData.ContainsKey(missionData.MissionID))
+            if(legacyMissionsData is not null && legacyMissionsData.ContainsKey(missionData.MissionID))
             {
-                return horizonMissionsData;
+                return legacyMissionsData;
             }
-            else if (odysseyMissionsData is not null && odysseyMissionsData.ContainsKey(missionData.MissionID))
+            if (liveMissionData is not null && liveMissionData.ContainsKey(missionData.MissionID))
             {
-                return odysseyMissionsData;
+                return liveMissionData;
             }
 
             return null;
@@ -608,14 +694,13 @@ namespace ODMissionStacker.Missions
 
         private MissionsManager GetMissionsManager(MissionData missionData)
         {
-            if (horizonMissions.Missions.Contains(missionData))
+            if(legacyMissions.Missions.Contains(missionData))
             {
-                return horizonMissions;
+                return legacyMissions;
             }
-
-            if (odysseyMissions.Missions.Contains(missionData))
+            if (liveMissions.Missions.Contains(missionData))
             {
-                return odysseyMissions;
+                return liveMissions;
             }
 
             if (completedMissions.Missions.Contains(missionData))
@@ -628,20 +713,14 @@ namespace ODMissionStacker.Missions
 
         private static void AddMissionToGui(MissionsManager manager, MissionData missionData)
         {
-            if (manager == null)
-            {
-                manager = new();
-            }
+            manager ??= new();
 
             manager.AddMission(missionData);
         }
 
         private static void AddMissionToDictionary(ref Dictionary<long, MissionData> missionDictionary, MissionData missionData)
         {
-            if (missionDictionary == null)
-            {
-                missionDictionary = new();
-            }
+            missionDictionary ??= new();
 
             if (missionDictionary.ContainsKey(missionData.MissionID))
             {
@@ -727,22 +806,22 @@ namespace ODMissionStacker.Missions
             }
 
             CompletedMissions.Missions.ClearCollection();
-            HorizionMissions.Missions.ClearCollection();
-            OdysseyMissions.Missions.ClearCollection();
+            LiveMissions.Missions.ClearCollection();
+            LegacyMissions.Missions.ClearCollection();
             Bounties.ClearCollection();
 
-            horizonMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(HorizonDataSaveFile);
+            legacyMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(LegacyDataSaveFile);
 
-            if (horizonMissionsData is not null)
+            if (legacyMissionsData is not null)
             {
-                ProcessDictionary(horizonMissionsData, HorizionMissions);
+                ProcessDictionary(legacyMissionsData, LegacyMissions);
             }
 
-            odysseyMissionsData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(OdysseyDataSaveFile);
+            liveMissionData = LoadSaveJson.LoadJson<Dictionary<long, MissionData>>(LiveDataSaveFile);
 
-            if (odysseyMissionsData is not null)
+            if (liveMissionData is not null)
             {
-                ProcessDictionary(odysseyMissionsData, OdysseyMissions);
+                ProcessDictionary(liveMissionData, LiveMissions);
             }
 
             ObservableCollection<MissionSourceClipboardData> missionSourceClipboards = LoadSaveJson.LoadJson<ObservableCollection<MissionSourceClipboardData>>(clipboarDataSaveFile);
@@ -772,8 +851,8 @@ namespace ODMissionStacker.Missions
 
         public void SaveData()
         {
-            _ = LoadSaveJson.SaveJson(horizonMissionsData, HorizonDataSaveFile);
-            _ = LoadSaveJson.SaveJson(odysseyMissionsData, OdysseyDataSaveFile);
+            _ = LoadSaveJson.SaveJson(legacyMissionsData, LegacyDataSaveFile);
+            _ = LoadSaveJson.SaveJson(liveMissionData, LiveDataSaveFile);
             _ = LoadSaveJson.SaveJson(bounties, BountyDataSaveFile);
         }
     }
