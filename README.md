@@ -1,3 +1,3 @@
 # Massacre Stack Manager
 
-This application has been discontinued and replaced by OD Elite TRacer - https://github.com/WarmedxMints/ODEliteTracker/releases
+This application has been discontinued and replaced by OD Elite Tracker - https://github.com/WarmedxMints/ODEliteTracker/releases
